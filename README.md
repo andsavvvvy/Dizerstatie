@@ -10,12 +10,12 @@ Proiect de disertație — Administrarea Bazelor de Date, 2025–2026.
 
 ```
 ┌──────────────────────────────────────────────────┐
-│              Web Dashboard (Port 9000)           │
+│              Web Dashboard (Port 9000)            │
 └────────────────────┬─────────────────────────────┘
                      │
 ┌────────────────────▼─────────────────────────────┐
-│          Orchestrator Global (Port 7000)         │
-│     Meta-clustering · Ensemble · PCA · Insights  │
+│          Orchestrator Global (Port 7000)          │
+│     Meta-clustering · Ensemble · PCA · Insights   │
 └──────┬─────────────┬─────────────┬───────────────┘
        │             │             │
 ┌──────▼───┐  ┌──────▼───┐  ┌─────▼────┐  ┌──────────┐
@@ -65,7 +65,15 @@ DB_PASSWORD=parola
 DB_NAME=distributed_clustering
 ```
 
-Rulează schema:
+Rulează migrarea bazei de date (creează baza de date și toate cele 7 tabele):
+
+```bash
+python db/migrations/run_migration.py
+```
+
+Scriptul se conectează la MySQL, citește `schema_distributed.sql` și execută fiecare instrucțiune. Afișează progresul și raportează erori. Poate fi rulat de mai multe ori fără probleme (folosește `CREATE TABLE IF NOT EXISTS`).
+
+Alternativ, schema poate fi aplicată direct:
 
 ```bash
 mysql -u root -p < db/schema_distributed.sql
@@ -75,7 +83,27 @@ mysql -u root -p < db/schema_distributed.sql
 
 ## Pornire
 
-5 terminale separate:
+### Opțiunea 1: Script automat (Windows PowerShell)
+
+Pornește toate cele 5 componente și deschide browserul automat:
+
+```powershell
+.\scripts\start_distributed.ps1
+```
+
+Dacă PowerShell blochează execuția scriptului:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\start_distributed.ps1
+```
+
+Pentru oprirea tuturor proceselor:
+
+```powershell
+.\scripts\stop_all.ps1
+```
+
+### Opțiunea 2: Manual (5 terminale separate)
 
 ```bash
 python orchestrator_global/app.py          # Orchestrator  :7000
@@ -108,7 +136,12 @@ Deschide http://localhost:9000
 ├── db/
 │   ├── connection.py             # Conexiune MySQL
 │   ├── repository.py             # CRUD complet (7 tabele)
-│   └── schema_distributed.sql    # Schema completă
+│   ├── schema_distributed.sql    # Schema completă
+│   └── migrations/
+│       └── run_migration.py      # Script migrare DB (creează tabele automat)
+├── scripts/
+│   ├── start_distributed.ps1     # Pornire automată (toate componentele)
+│   └── stop_all.ps1              # Oprire automată (toate procesele)
 └── requirements.txt
 ```
 
@@ -144,6 +177,6 @@ Deschide http://localhost:9000
 
 Săvulescu Andrei
 Disertație — Administrarea Bazelor de Date
-Profesor Coordonator — Florin Radulescu
-Facultatea de Automatica si Calculatoare
+Profesor Coordonator — Florin Rădulescu
+Facultatea de Automatică și Calculatoare
 Universitatea Națională de Știință și Tehnologie Politehnica București, 2025–2026

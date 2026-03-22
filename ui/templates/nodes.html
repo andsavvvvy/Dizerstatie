@@ -49,25 +49,6 @@
 
                     {% if node.status %}
                     <div class="mb-3">
-                        <h6 class="text-muted">Data Status</h6>
-                        {% if node.status.data_loaded %}
-                        <span class="badge bg-success"><i class="bi bi-database-check"></i> Data Loaded</span>
-                        {% else %}
-                        <span class="badge bg-secondary"><i class="bi bi-database"></i> No Data</span>
-                        {% endif %}
-                    </div>
-
-                    {% if node.status.data_shape %}
-                    <div class="mb-3">
-                        <h6 class="text-muted">Dataset</h6>
-                        <p class="mb-0">
-                            <strong>{{ node.status.data_shape[0]|number }}</strong> samples x
-                            <strong>{{ node.status.data_shape[1] }}</strong> features
-                        </p>
-                    </div>
-                    {% endif %}
-
-                    <div class="mb-3">
                         <h6 class="text-muted">Algorithms</h6>
                         {% for algo in node.status.algorithms_available %}
                         <span class="badge bg-info">{{ algo }}</span>
@@ -98,6 +79,7 @@
         </div>
         {% endfor %}
     </div>
+
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
