@@ -40,7 +40,6 @@ def test_quick_analysis():
     print("="*60 + "\n")
     
     try:
-        # 1. Start analysis
         print("1. Starting analysis...")
         response = requests.post(
             'http://localhost:7000/analysis/start',
@@ -50,8 +49,6 @@ def test_quick_analysis():
         response.raise_for_status()
         session_id = response.json()['session_id']
         print(f"   ✓ Session ID: {session_id[:16]}...")
-        
-        # 2. Trigger nodes
         print("\n2. Triggering nodes...")
         for node_url in ['http://localhost:6001', 'http://localhost:6002', 'http://localhost:6003']:
             response = requests.post(
@@ -61,12 +58,8 @@ def test_quick_analysis():
             )
             response.raise_for_status()
             print(f"   ✓ Node submitted")
-        
-        # 3. Wait a bit
         print("\n3. Waiting for nodes...")
         time.sleep(3)
-        
-        # 4. Trigger aggregation
         print("\n4. Triggering aggregation...")
         response = requests.post(
             f'http://localhost:7000/analysis/{session_id}/aggregate',
@@ -111,8 +104,6 @@ def main():
         return False
     
     print("\n✓ All services are running!")
-    
-    # Ask if user wants to run end-to-end test
     response = input("\nRun quick end-to-end analysis test? (y/N): ")
     
     if response.lower() == 'y':

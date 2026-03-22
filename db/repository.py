@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 
 class DistributedRepository:
 
-    # ---- Node Management ----
-
     @staticmethod
     def register_node(node_config):
         conn = get_connection(); cur = conn.cursor()
@@ -45,8 +43,6 @@ class DistributedRepository:
             return cur.fetchall()
         finally: cur.close(); conn.close()
 
-    # ---- Local Results ----
-
     @staticmethod
     def save_local_results(session_id, node_id, results):
         conn = get_connection(); cur = conn.cursor()
@@ -64,8 +60,6 @@ class DistributedRepository:
             conn.commit(); logger.info(f"✓ Saved local results: {node_id}/{session_id}")
         except: conn.rollback(); raise
         finally: cur.close(); conn.close()
-
-    # ---- Global Analysis ----
 
     @staticmethod
     def create_global_analysis(session_id, total_nodes, total_points):
@@ -176,8 +170,6 @@ class DistributedRepository:
         except: conn.rollback(); raise
         finally: cur.close(); conn.close()
 
-    # ---- Participation & Performance ----
-
     @staticmethod
     def get_node_participation(session_id):
         conn = get_connection(); cur = conn.cursor(dictionary=True)
@@ -213,8 +205,6 @@ class DistributedRepository:
             cur.execute("SELECT node_id, algorithm, n_local_clusters, silhouette_score, davies_bouldin_score, execution_time_ms FROM node_local_results WHERE session_id=%s ORDER BY node_id, algorithm", (session_id,))
             return cur.fetchall()
         finally: cur.close(); conn.close()
-
-    # ---- Dataset Management ----
 
     @staticmethod
     def save_dataset(name, original_filename, file_type, file_data, columns_info, row_count, description='', is_default=False):
@@ -265,8 +255,6 @@ class DistributedRepository:
             cur.execute("SELECT file_data, original_filename, file_type FROM datasets WHERE id=%s", (dataset_id,))
             return cur.fetchone()
         finally: cur.close(); conn.close()
-
-    # ---- Node-Dataset Assignments ----
 
     @staticmethod
     def assign_dataset_to_node(node_id, dataset_id, set_active=False):

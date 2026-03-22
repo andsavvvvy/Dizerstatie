@@ -32,14 +32,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.json_encoder = DateTimeEncoder
-
-# In-memory session store
 active_sessions = {}
-
-
-# ============================================
-# Health & Info
-# ============================================
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -66,11 +59,6 @@ def info():
             'analysis_recent': 'GET /analysis/recent',
         },
     })
-
-
-# ============================================
-# Node Management
-# ============================================
 
 @app.route('/nodes/register', methods=['POST'])
 def register_node():
@@ -110,11 +98,6 @@ def node_heartbeat(node_id):
         return jsonify({'status': 'success', 'node_id': node_id})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-# ============================================
-# Analysis Workflow
-# ============================================
 
 @app.route('/analysis/start', methods=['POST'])
 def start_analysis():
@@ -234,8 +217,6 @@ def trigger_aggregation(session_id):
         start_time = time.time()
         report = session['engine'].generate_global_report()
         execution_time_ms = int((time.time() - start_time) * 1000)
-
-        # Extract node system metrics from the report
         node_system_metrics = report.get('metadata', {}).get('node_system_metrics', {})
 
         DistributedRepository.complete_global_analysis(
@@ -333,11 +314,6 @@ def get_report(session_id):
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-
-# ============================================
-# Error Handlers
-# ============================================
-
 @app.errorhandler(404)
 def not_found(_):
     return jsonify({'status': 'error', 'message': 'Endpoint not found'}), 404
@@ -346,11 +322,6 @@ def not_found(_):
 @app.errorhandler(500)
 def internal_error(_):
     return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
-
-
-# ============================================
-# Startup
-# ============================================
 
 if __name__ == '__main__':
     print("""

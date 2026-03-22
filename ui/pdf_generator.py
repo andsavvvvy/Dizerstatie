@@ -51,8 +51,6 @@ def _build_bar_chart(names, values, title_text, width=450, height=200,
                      best_color=colors.HexColor('#198754'), best_name=None):
     """Create a simple vertical bar chart as a Drawing."""
     d = Drawing(width, height + 30)
-
-    # Title
     d.add(String(width / 2, height + 15, title_text,
                  fontSize=10, fillColor=colors.HexColor('#333'),
                  textAnchor='middle', fontName='Helvetica-Bold'))
@@ -70,14 +68,11 @@ def _build_bar_chart(names, values, title_text, width=450, height=200,
     chart.valueAxis.labels.fontSize = 7
     chart.valueAxis.valueMin = min(0, min(values) - 0.05) if values else 0
     chart.valueAxis.valueMax = max(values) * 1.15 if values else 1
-
-    # Color bars
     chart.bars[0].fillColor = bar_color
     if best_name and best_name in names:
         for i, n in enumerate(names):
             if n == best_name:
                 chart.bars[0].fillColor = bar_color  # default
-                # Can't color individual bars easily in reportlab, use annotation
     
     d.add(chart)
     return d
@@ -113,8 +108,6 @@ def _build_grouped_bar_chart(categories, series_data, series_names, title_text,
     for i, name in enumerate(series_names):
         chart.bars[i].fillColor = palette[i % len(palette)]
         chart.bars[i].name = name
-
-    # Legend
     for i, name in enumerate(series_names):
         x_pos = 70 + i * 120
         d.add(Rect(x_pos, 5, 10, 8, fillColor=palette[i % len(palette)], strokeColor=None))
@@ -148,10 +141,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
     styles.add(ParagraphStyle('CellText', parent=styles['Normal'], fontSize=7.5, leading=9))
 
     elements = []
-
-    # ============================================================
-    # TITLE PAGE
-    # ============================================================
     elements.append(Spacer(1, 1 * cm))
     elements.append(Paragraph("Distributed Clustering — Analysis Report", styles['MainTitle']))
     elements.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#0d6efd')))
@@ -182,10 +171,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
     t.setStyle(_make_table_style('#0d6efd'))
     elements.append(t)
     elements.append(PageBreak())
-
-    # ============================================================
-    # ALGORITHM PERFORMANCE
-    # ============================================================
     elements.append(Paragraph("Algorithm Performance", styles['Section']))
 
     ensemble = analysis.get('ensemble_analysis', {})
@@ -194,8 +179,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
 
     if algo_scores:
         sorted_algos = sorted(algo_scores.items(), key=lambda x: x[1].get('avg_silhouette', 0), reverse=True)
-
-        # Chart
         chart_names = [a[0] for a in sorted_algos]
         chart_vals = [a[1].get('avg_silhouette', 0) for a in sorted_algos]
         elements.append(_build_bar_chart(
@@ -204,8 +187,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
             best_name=best_algo_name,
         ))
         elements.append(Spacer(1, 4 * mm))
-
-        # Table — use Paragraph for algorithm names to allow wrapping
         algo_data = [['Algorithm', 'Avg Silhouette', 'Std Dev', 'Consistency', 'Avg Clusters', 'Nodes']]
         for algo, scores in sorted_algos:
             is_best = algo == best_algo_name
@@ -229,10 +210,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
             elements.append(Paragraph("<b>Recommendation:</b> " + rec, styles['Normal']))
 
     elements.append(PageBreak())
-
-    # ============================================================
-    # NODE PARTICIPATION
-    # ============================================================
     if node_participation:
         elements.append(Paragraph("Node Participation", styles['Section']))
 
@@ -250,10 +227,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
         t.setStyle(_make_table_style('#0dcaf0'))
         elements.append(t)
         elements.append(Spacer(1, 6 * mm))
-
-    # ============================================================
-    # PER-NODE ALGORITHM BREAKDOWN
-    # ============================================================
     if local_by_node:
         elements.append(Paragraph("Per-Node Algorithm Breakdown", styles['Section']))
 
@@ -275,8 +248,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
             t.setStyle(_make_table_style('#6c757d'))
             elements.append(t)
             elements.append(Spacer(1, 3 * mm))
-
-        # Per-node silhouette chart
         all_algos_set = set()
         for algos in local_by_node.values():
             for lr in algos:
@@ -301,8 +272,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
                 all_algos_sorted, series_data, node_ids,
                 'Silhouette Score per Algorithm per Node',
             ))
-
-        # Execution time chart
         if all_algos_sorted and node_ids:
             time_series = []
             for nid in node_ids:
@@ -322,10 +291,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
             ))
 
     elements.append(PageBreak())
-
-    # ============================================================
-    # SYSTEM PERFORMANCE
-    # ============================================================
     if node_performance:
         elements.append(Paragraph("System Performance", styles['Section']))
 
@@ -343,14 +308,9 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
             ])
         t = Table(perf_data, colWidths=[3.8*cm, 1.8*cm, 2.3*cm, 2.5*cm, 2*cm, 2.8*cm])
         t.setStyle(_make_table_style('#ffc107'))
-        # Fix header text color for yellow background
         t.setStyle(TableStyle([('TEXTCOLOR', (0, 0), (-1, 0), colors.black)]))
         elements.append(t)
         elements.append(Spacer(1, 6 * mm))
-
-    # ============================================================
-    # CROSS-ORG INSIGHTS
-    # ============================================================
     ci = analysis.get('cross_org_insights', {})
     cross_org = ci.get('cross_org_clusters', [])
 
@@ -390,10 +350,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
             elements.append(Spacer(1, 5 * mm))
     else:
         elements.append(Paragraph("No cross-organizational patterns detected.", styles['Normal']))
-
-    # ============================================================
-    # KEY FINDINGS
-    # ============================================================
     elements.append(Spacer(1, 4 * mm))
     elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#dee2e6')))
     elements.append(Spacer(1, 4 * mm))
@@ -412,8 +368,6 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
     for f in findings:
         elements.append(Paragraph(f"• {f}", styles['Normal']))
         elements.append(Spacer(1, 1.5 * mm))
-
-    # Build
     doc.build(elements)
     buffer.seek(0)
     return buffer.getvalue()

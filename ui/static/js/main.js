@@ -1,8 +1,3 @@
-// Distributed Clustering UI — Main JavaScript
-
-// ============================================
-// Toast Notifications
-// ============================================
 function showToast(message, type) {
     type = type || 'info';
     var c = document.getElementById('toast-container') || createToastContainer();
@@ -15,35 +10,34 @@ function showToast(message, type) {
     new bootstrap.Toast(t, { delay: 3000 }).show();
     t.addEventListener('hidden.bs.toast', function () { t.remove(); });
 }
+
 function createToastContainer() {
     var c = document.createElement('div');
-    c.id = 'toast-container'; c.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-    document.body.appendChild(c); return c;
+    c.id = 'toast-container';
+    c.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    document.body.appendChild(c);
+    return c;
 }
 
-// ============================================
-// Utilities
-// ============================================
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(function () { showToast('Copied!', 'success'); })
         .catch(function () { showToast('Copy failed', 'danger'); });
 }
 
-// ============================================
-// System Status
-// ============================================
 function updateSystemStatus() {
     fetch('/api/system/health').then(function (r) { return r.json(); }).then(function (d) {
         var b = document.getElementById('system-status');
         if (!b) return;
-        if (d.overall === 'healthy') { b.className = 'badge bg-success'; b.innerHTML = '<i class="bi bi-circle-fill"></i> Online'; }
-        else { b.className = 'badge bg-warning'; b.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Degraded'; }
+        if (d.overall === 'healthy') {
+            b.className = 'badge bg-success';
+            b.innerHTML = '<i class="bi bi-circle-fill"></i> Online';
+        } else {
+            b.className = 'badge bg-warning';
+            b.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Degraded';
+        }
     }).catch(function () {});
 }
 
-// ============================================
-// Analysis Monitor
-// ============================================
 function initAnalysisMonitor(sid) {
     var t0 = Date.now();
     var el = document.getElementById('init-time');
@@ -54,46 +48,62 @@ function initAnalysisMonitor(sid) {
     }, 1000);
     setTimeout(function () { runAnalysis(sid); }, 1000);
 }
+
 function addLog(msg, type) {
-    var log = document.getElementById('progress-log'); if (!log) return;
-    var e = document.createElement('div'); e.className = 'log-entry log-' + (type || 'info');
-    e.innerHTML = '<span class="log-time">' + new Date().toLocaleTimeString() + '</span><span class="log-message">' + msg + '</span>';
-    log.appendChild(e); log.scrollTop = log.scrollHeight;
+    var log = document.getElementById('progress-log');
+    if (!log) return;
+    var e = document.createElement('div');
+    e.className = 'log-entry log-' + (type || 'info');
+    e.innerHTML = '<span class="log-time">' + new Date().toLocaleTimeString() +
+        '</span><span class="log-message">' + msg + '</span>';
+    log.appendChild(e);
+    log.scrollTop = log.scrollHeight;
 }
+
 function setStage(s) {
     var el = document.getElementById('current-stage');
     if (el) el.textContent = s.charAt(0).toUpperCase() + s.slice(1);
-    ['init','nodes','aggregate','complete'].forEach(function (st, i, arr) {
+    ['init', 'nodes', 'aggregate', 'complete'].forEach(function (st, i, arr) {
         var step = document.getElementById('step-' + st);
         if (step && arr.indexOf(s) >= i) step.classList.add('active');
     });
 }
+
 function setErrorState() {
     var el = document.getElementById('analysis-status');
     if (el) { el.className = 'badge bg-danger'; el.textContent = 'Error'; }
 }
+
 async function runAnalysis(sid) {
     try {
-        setStage('nodes'); addLog('Triggering nodes...', 'info');
+        setStage('nodes');
+        addLog('Triggering nodes...', 'info');
         var nr = await fetch('/analysis/' + sid + '/trigger_nodes', { method: 'POST' });
         if (!nr.ok) { addLog('[FAIL] ' + nr.status, 'error'); setErrorState(); return; }
         (await nr.json()).results.forEach(function (r) {
-            addLog(r.status === 'success' ? '[OK] ' + r.node : '[FAIL] ' + r.node + ': ' + (r.message||''), r.status === 'success' ? 'success' : 'error');
+            addLog(r.status === 'success' ? '[OK] ' + r.node : '[FAIL] ' + r.node + ': ' + (r.message || ''),
+                r.status === 'success' ? 'success' : 'error');
         });
         addLog('Waiting for nodes...', 'info');
         await waitForReady(sid);
-        setStage('aggregate'); addLog('Aggregating...', 'info');
+        setStage('aggregate');
+        addLog('Aggregating...', 'info');
         var ar = await fetch('/analysis/' + sid + '/aggregate', { method: 'POST' });
         if (!ar.ok) { addLog('[FAIL] ' + ar.status, 'error'); setErrorState(); return; }
         var ad = await ar.json();
         if (ad.status === 'completed') {
-            setStage('complete'); addLog('[OK] Done!', 'success');
+            setStage('complete');
+            addLog('[OK] Done!', 'success');
             var s = document.getElementById('analysis-status');
             if (s) { s.className = 'badge bg-success'; s.textContent = 'Completed'; }
             setTimeout(function () { window.location.href = '/analysis/' + sid; }, 2000);
-        } else { addLog('[FAIL] ' + (ad.message || ''), 'error'); setErrorState(); }
+        } else {
+            addLog('[FAIL] ' + (ad.message || ''), 'error');
+            setErrorState();
+        }
     } catch (e) { addLog('[ERROR] ' + e, 'error'); setErrorState(); }
 }
+
 function waitForReady(sid) {
     return new Promise(function (resolve, reject) {
         (function check() {
@@ -102,55 +112,81 @@ function waitForReady(sid) {
                     var el = document.getElementById('node-status');
                     if (el) el.innerHTML = '<span class="badge bg-primary">' + d.received_nodes + '/' + d.expected_nodes + '</span>';
                 }
-                if (d.status === 'ready_for_aggregation' || d.status === 'completed') { addLog('[OK] All submitted', 'success'); resolve(); }
-                else setTimeout(check, 2000);
+                if (d.status === 'ready_for_aggregation' || d.status === 'completed') {
+                    addLog('[OK] All submitted', 'success');
+                    resolve();
+                } else setTimeout(check, 2000);
             }).catch(reject);
         })();
     });
 }
 
-// ============================================
-// Node Testing & Form
-// ============================================
 function testNode(url) {
-    fetch(url + '/health').then(function (r) { return r.json(); })
-        .then(function (d) { showToast('OK: ' + d.status, 'success'); })
+    fetch('/api/node/test?url=' + encodeURIComponent(url))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.status === 'healthy') showToast('Node responding: ' + d.node_id, 'success');
+            else showToast('Node error: ' + (d.message || 'unhealthy'), 'danger');
+        })
         .catch(function (e) { showToast('Fail: ' + e, 'danger'); });
 }
+
 function initAnalysisForm() {
-    var f = document.getElementById('analysisForm'); if (!f) return;
+    var f = document.getElementById('analysisForm');
+    if (!f) return;
     f.addEventListener('submit', function (e) {
         e.preventDefault();
         var btn = f.querySelector('button[type="submit"]');
-        btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Starting...';
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Starting...';
         fetch(f.getAttribute('data-start-url'), { method: 'POST', body: new FormData(f) })
-            .then(function (r) { return r.json(); }).then(function (d) {
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
                 if (d.status === 'success') window.location.href = d.redirect;
-                else { showToast(d.message, 'danger'); btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-circle"></i> Start Analysis'; }
-            }).catch(function (e) { showToast(e, 'danger'); btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-circle"></i> Start Analysis'; });
+                else {
+                    showToast(d.message, 'danger');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-play-circle"></i> Start Analysis';
+                }
+            }).catch(function (e) {
+                showToast(e, 'danger');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-play-circle"></i> Start Analysis';
+            });
     });
 }
-function initNodesAutoRefresh() { if (document.getElementById('nodes-page')) setTimeout(function () { location.reload(); }, 15000); }
 
-// ============================================
-// Analysis Charts (Bar + Radar)
-// ============================================
+function initNodesAutoRefresh() {
+    if (document.getElementById('nodes-page'))
+        setTimeout(function () { location.reload(); }, 15000);
+}
+
 function initAnalysisCharts() {
-    var el = document.getElementById('analysis-chart-data'); if (!el) return;
-    var cd; try { cd = JSON.parse(el.textContent); } catch (e) { return; }
+    var el = document.getElementById('analysis-chart-data');
+    if (!el) return;
+    var cd;
+    try { cd = JSON.parse(el.textContent); } catch (e) { return; }
+
     var names = cd.algorithms.map(function (a) { return a.name; });
     var sils = cd.algorithms.map(function (a) { return a.avg_silhouette; });
-    var cons = cd.algorithms.map(function (a) { return a.consistency; });
-    var cols = cd.algorithms.map(function (a) { return a.name === cd.bestAlgorithm ? 'rgb(40,167,69)' : 'rgb(13,110,253)'; });
+    var cols = cd.algorithms.map(function (a) {
+        return a.name === cd.bestAlgorithm ? 'rgb(40,167,69)' : 'rgb(13,110,253)';
+    });
 
     var b = document.getElementById('algorithmPerformanceChart');
     if (b && typeof Plotly !== 'undefined')
-        Plotly.newPlot(b, [{ x: names, y: sils, type: 'bar', marker: { color: cols }, text: sils.map(function (s) { return s.toFixed(4); }), textposition: 'auto' }],
-            { title: 'Silhouette Score by Algorithm', xaxis: { title: 'Algorithm' }, yaxis: { title: 'Score', range: [-0.5, 1] }, height: 400 });
+        Plotly.newPlot(b, [{
+            x: names, y: sils, type: 'bar', marker: { color: cols },
+            text: sils.map(function (s) { return s.toFixed(4); }), textposition: 'auto'
+        }], {
+            title: 'Silhouette Score by Algorithm',
+            xaxis: { title: 'Algorithm' },
+            yaxis: { title: 'Score', range: [-0.5, 1] },
+            height: 400
+        });
 
     var r = document.getElementById('ensembleComparisonChart');
     if (r && typeof Plotly !== 'undefined') {
-        // Build Davies-Bouldin (inverted, normalized) and Speed scores from sensitivity data
         var sdEl = document.getElementById('sensitivity-data');
         var dbScores = names.map(function () { return 0; });
         var speedScores = names.map(function () { return 0; });
@@ -159,31 +195,28 @@ function initAnalysisCharts() {
             try {
                 var sd = JSON.parse(sdEl.textContent);
                 var matrix = sd.algo_node_matrix || [];
-
-                // Compute avg Davies-Bouldin per algo (lower=better, so invert: 1/(1+db))
                 var dbMap = {}, timeMap = {};
+
                 matrix.forEach(function (m) {
                     if (!dbMap[m.algorithm]) { dbMap[m.algorithm] = []; timeMap[m.algorithm] = []; }
                     dbMap[m.algorithm].push(m.davies_bouldin || 0);
                     timeMap[m.algorithm].push(m.execution_time_ms || 1);
                 });
 
-                // Find max time for normalization
                 var allTimes = matrix.map(function (m) { return m.execution_time_ms || 1; });
                 var maxTime = Math.max.apply(null, allTimes) || 1;
 
                 names.forEach(function (name, i) {
                     if (dbMap[name]) {
                         var avgDb = dbMap[name].reduce(function (a, b) { return a + b; }, 0) / dbMap[name].length;
-                        dbScores[i] = 1.0 / (1.0 + avgDb); // invert: higher = better
+                        dbScores[i] = 1.0 / (1.0 + avgDb);
                     }
                     if (timeMap[name]) {
                         var avgTime = timeMap[name].reduce(function (a, b) { return a + b; }, 0) / timeMap[name].length;
-                        speedScores[i] = 1.0 - (avgTime / maxTime); // faster = higher
-                        speedScores[i] = Math.max(0, Math.min(1, speedScores[i]));
+                        speedScores[i] = Math.max(0, Math.min(1, 1.0 - (avgTime / maxTime)));
                     }
                 });
-            } catch (e) { /* fallback: zeros */ }
+            } catch (e) {}
         }
 
         Plotly.newPlot(r, [
@@ -192,37 +225,40 @@ function initAnalysisCharts() {
             { type: 'scatterpolar', r: speedScores, theta: names, fill: 'toself', name: 'Speed Score', opacity: 0.7 }
         ], {
             polar: { radialaxis: { visible: true, range: [0, 1] } },
-            height: 500, showlegend: true
+            height: 500,
+            showlegend: true
         });
     }
 }
 
-// ============================================
-// PCA Charts
-// ============================================
 function initPcaCharts() {
     var el = document.getElementById('pca-chart-data');
     if (!el || typeof Plotly === 'undefined') return;
-    var pca; try { pca = JSON.parse(el.textContent); } catch (e) { return; }
+    var pca;
+    try { pca = JSON.parse(el.textContent); } catch (e) { return; }
     if (!pca.points || !pca.points.length) return;
 
-    var xL = pca.pca_component_labels[0], yL = pca.pca_component_labels[1];
+    var xL = 'Feature Variation Axis 1 (' + (pca.explained_variance[0] * 100).toFixed(1) + '% of data variance)';
+    var yL = 'Feature Variation Axis 2 (' + (pca.explained_variance[1] * 100).toFixed(1) + '% of data variance)';
 
     function buildTraces(groupKey) {
         var groups = {};
         pca.points.forEach(function (p) {
             var k = p[groupKey];
             if (!groups[k]) groups[k] = { x: [], y: [], text: [], sizes: [] };
-            groups[k].x.push(p.x); groups[k].y.push(p.y);
-            groups[k].text.push(p.label + ' (size:' + p.cluster_size + ')');
+            groups[k].x.push(p.x);
+            groups[k].y.push(p.y);
+            groups[k].text.push(p.algorithm + ' on ' + p.node_id + ' (cluster #' + p.cluster_id + ', ' + p.cluster_size + ' points)');
             groups[k].sizes.push(Math.max(8, Math.min(30, Math.sqrt(p.cluster_size) * 2)));
         });
         var traces = [];
         Object.keys(groups).sort().forEach(function (k) {
             var g = groups[k];
-            traces.push({ x: g.x, y: g.y, text: g.text, mode: 'markers', name: k, type: 'scatter',
+            traces.push({
+                x: g.x, y: g.y, text: g.text, mode: 'markers', name: k, type: 'scatter',
                 marker: { size: g.sizes, opacity: 0.7 },
-                hovertemplate: '%{text}<extra>%{fullData.name}</extra>' });
+                hovertemplate: '%{text}<extra>%{fullData.name}</extra>'
+            });
         });
         return traces;
     }
@@ -230,41 +266,43 @@ function initPcaCharts() {
     var layout = { xaxis: { title: xL }, yaxis: { title: yL }, height: 500, hovermode: 'closest' };
 
     var e1 = document.getElementById('pcaByNodeChart');
-    if (e1) Plotly.newPlot(e1, buildTraces('node_id'), Object.assign({ title: 'By Node' }, layout));
-    var e2 = document.getElementById('pcaByAlgorithmChart');
-    if (e2) Plotly.newPlot(e2, buildTraces('algorithm'), Object.assign({ title: 'By Algorithm' }, layout));
+    if (e1) Plotly.newPlot(e1, buildTraces('node_id'), Object.assign({ title: 'Cluster Centroids Colored by Node (Organization)' }, layout));
 
-    // Unified clusters
+    var e2 = document.getElementById('pcaByAlgorithmChart');
+    if (e2) Plotly.newPlot(e2, buildTraces('algorithm'), Object.assign({ title: 'Cluster Centroids Colored by Algorithm' }, layout));
+
     var cGroups = {};
     pca.points.forEach(function (p) {
-        var k = 'Cluster ' + p.unified_cluster;
+        var k = 'Global Cluster ' + p.unified_cluster;
         if (!cGroups[k]) cGroups[k] = { x: [], y: [], text: [], sizes: [] };
-        cGroups[k].x.push(p.x); cGroups[k].y.push(p.y);
-        cGroups[k].text.push(p.label + ' (' + p.node_type + ')');
+        cGroups[k].x.push(p.x);
+        cGroups[k].y.push(p.y);
+        cGroups[k].text.push(p.algorithm + ' on ' + p.node_id + ' (' + p.node_type + ', ' + p.cluster_size + ' points)');
         cGroups[k].sizes.push(Math.max(8, Math.min(30, Math.sqrt(p.cluster_size) * 2)));
     });
     var cTraces = [];
     Object.keys(cGroups).sort().forEach(function (k) {
         var g = cGroups[k];
-        cTraces.push({ x: g.x, y: g.y, text: g.text, mode: 'markers', name: k, type: 'scatter',
-            marker: { size: g.sizes, opacity: 0.7 }, hovertemplate: '%{text}<extra>%{fullData.name}</extra>' });
+        cTraces.push({
+            x: g.x, y: g.y, text: g.text, mode: 'markers', name: k, type: 'scatter',
+            marker: { size: g.sizes, opacity: 0.7 },
+            hovertemplate: '%{text}<extra>%{fullData.name}</extra>'
+        });
     });
+
     var e3 = document.getElementById('pcaByClusterChart');
-    if (e3) Plotly.newPlot(e3, cTraces, Object.assign({ title: 'Unified Clusters' }, layout));
+    if (e3) Plotly.newPlot(e3, cTraces, Object.assign({ title: 'Unified Global Clusters (Meta-Clustering Result)' }, layout));
 }
 
-// ============================================
-// Sensitivity / Evaluation Charts
-// ============================================
 function initSensitivityCharts() {
     var el = document.getElementById('sensitivity-data');
     if (!el || typeof Plotly === 'undefined') return;
-    var sd; try { sd = JSON.parse(el.textContent); } catch (e) { return; }
+    var sd;
+    try { sd = JSON.parse(el.textContent); } catch (e) { return; }
 
     var matrix = sd.algo_node_matrix || [];
     if (!matrix.length) return;
 
-    // --- 1. Quality vs Speed scatter ---
     var qsGroups = {};
     matrix.forEach(function (m) {
         if (!qsGroups[m.algorithm]) qsGroups[m.algorithm] = { x: [], y: [], text: [] };
@@ -284,13 +322,15 @@ function initSensitivityCharts() {
     });
     var e1 = document.getElementById('qualitySpeedChart');
     if (e1) Plotly.newPlot(e1, qsTraces, {
-        title: 'Quality vs Execution Time', xaxis: { title: 'Execution Time (ms)' },
-        yaxis: { title: 'Silhouette Score', range: [-0.5, 1] }, height: 450, hovermode: 'closest'
+        title: 'Quality vs Execution Time',
+        xaxis: { title: 'Execution Time (ms)' },
+        yaxis: { title: 'Silhouette Score', range: [-0.5, 1] },
+        height: 450, hovermode: 'closest'
     });
 
-    // --- 2. Silhouette heatmap (algo x node) ---
     var nodes = [...new Set(matrix.map(function (m) { return m.node_id; }))].sort();
     var algos = [...new Set(matrix.map(function (m) { return m.algorithm; }))].sort();
+
     var zData = [];
     algos.forEach(function (algo) {
         var row = [];
@@ -308,7 +348,6 @@ function initSensitivityCharts() {
         hovertemplate: 'Node: %{x}<br>Algorithm: %{y}<br>Silhouette: %{z:.4f}<extra></extra>'
     }], { title: 'Silhouette Score Heatmap', height: 400, margin: { l: 150 } });
 
-    // --- 3. Clusters found (grouped bar) ---
     var clTraces = [];
     nodes.forEach(function (nid) {
         var nodeData = matrix.filter(function (m) { return m.node_id === nid; });
@@ -324,7 +363,6 @@ function initSensitivityCharts() {
         xaxis: { title: 'Algorithm' }, yaxis: { title: 'Number of Clusters' }, height: 400
     });
 
-    // --- 4. Execution time (grouped bar) ---
     var etTraces = [];
     nodes.forEach(function (nid) {
         var nodeData = matrix.filter(function (m) { return m.node_id === nid; });
@@ -341,14 +379,13 @@ function initSensitivityCharts() {
     });
 }
 
-// ============================================
-// Page Init
-// ============================================
 document.addEventListener('DOMContentLoaded', function () {
     updateSystemStatus();
     setInterval(updateSystemStatus, 30000);
 
-    [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) { return new bootstrap.Tooltip(el); });
+    [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
+        return new bootstrap.Tooltip(el);
+    });
 
     document.querySelectorAll('code').forEach(function (cb) {
         if (cb.textContent.length > 10) {
@@ -361,7 +398,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     var m = document.getElementById('analysis-monitor-page');
-    if (m) { var sid = m.getAttribute('data-session-id'); if (sid) initAnalysisMonitor(sid); }
+    if (m) {
+        var sid = m.getAttribute('data-session-id');
+        if (sid) initAnalysisMonitor(sid);
+    }
 
     initAnalysisForm();
     initNodesAutoRefresh();

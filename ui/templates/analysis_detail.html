@@ -34,11 +34,6 @@
 </div>
 
 {% if analysis.status == 'completed' %}
-
-<!-- ============================================ -->
-<!-- DATA FOR JS CHARTS                           -->
-<!-- ============================================ -->
-
 <script id="analysis-chart-data" type="application/json">
 {
     "bestAlgorithm": {{ analysis.best_algorithm|tojson }},
@@ -65,11 +60,6 @@
 {{ sensitivity|tojson }}
 </script>
 {% endif %}
-
-<!-- ============================================ -->
-<!-- STATUS BADGE                                 -->
-<!-- ============================================ -->
-
 <div class="row mb-4">
     <div class="col-12">
         <div class="alert alert-success d-flex align-items-center">
@@ -85,11 +75,6 @@
         </div>
     </div>
 </div>
-
-<!-- ============================================ -->
-<!-- KEY METRICS CARDS                            -->
-<!-- ============================================ -->
-
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="card text-center border-primary">
@@ -131,11 +116,6 @@
         </div>
     </div>
 </div>
-
-<!-- ============================================ -->
-<!-- TAB NAVIGATION                               -->
-<!-- ============================================ -->
-
 <div class="row">
     <div class="col-12">
         <ul class="nav nav-tabs" id="resultsTabs" role="tablist">
@@ -177,12 +157,8 @@
         </ul>
 
         <div class="tab-content border border-top-0 p-4" id="resultsTabContent">
-
-            <!-- ==================== OVERVIEW TAB ==================== -->
             <div class="tab-pane fade show active" id="overview" role="tabpanel">
                 <h4 class="mb-4"><i class="bi bi-grid"></i> Analysis Overview</h4>
-
-                <!-- Node Participation Cards -->
                 {% if node_participation %}
                 <div class="card mb-4">
                     <div class="card-header">
@@ -224,8 +200,6 @@
                     </div>
                 </div>
                 {% endif %}
-
-                <!-- Algorithm Performance Chart -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">Algorithm Performance Comparison</h5>
@@ -234,8 +208,6 @@
                         <div id="algorithmPerformanceChart"></div>
                     </div>
                 </div>
-
-                <!-- Algorithm Statistics Table -->
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">Algorithm Statistics</h5>
@@ -277,45 +249,46 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ==================== VISUALIZATION TAB ==================== -->
             <div class="tab-pane fade" id="visualization" role="tabpanel">
-                <h4 class="mb-4"><i class="bi bi-scatter-chart"></i> Cluster Visualization (PCA)</h4>
+                <h4 class="mb-4"><i class="bi bi-scatter-chart"></i> Cluster Visualization (PCA 2D Projection)</h4>
 
                 {% if analysis.pca_visualization and analysis.pca_visualization.points %}
                 <div class="alert alert-info mb-4">
                     <i class="bi bi-info-circle"></i>
-                    <strong>PCA projection</strong> of {{ analysis.pca_visualization.n_centroids }} centroids
-                    into 2D space. Total variance explained:
-                    <strong>{{ "%.1f"|format(analysis.pca_visualization.total_variance_explained * 100) }}%</strong>
-                    (PC1: {{ "%.1f"|format(analysis.pca_visualization.explained_variance[0] * 100) }}%,
-                    PC2: {{ "%.1f"|format(analysis.pca_visualization.explained_variance[1] * 100) }}%)
+                    2D projection of <strong>{{ analysis.pca_visualization.n_centroids }}</strong> cluster centroids
+                    using PCA (Principal Component Analysis). Total data variance captured:
+                    <strong>{{ "%.1f"|format(analysis.pca_visualization.total_variance_explained * 100) }}%</strong>.
+                    Nearby points = clusters with similar characteristics. Circle size = cluster size.
                 </div>
 
-                <!-- Color by Node -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-server"></i> Centroids by Node</h5>
+                        <h5 class="mb-0"><i class="bi bi-server"></i> Centroid Distribution by Node (Organization)</h5>
+                        <small class="text-muted">Each color represents a different node. Shows how each organization's
+                            clusters are positioned in the shared feature space.</small>
                     </div>
                     <div class="card-body">
                         <div id="pcaByNodeChart"></div>
                     </div>
                 </div>
 
-                <!-- Color by Algorithm -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-gear"></i> Centroids by Algorithm</h5>
+                        <h5 class="mb-0"><i class="bi bi-gear"></i> Centroid Distribution by Algorithm</h5>
+                        <small class="text-muted">Each color represents a clustering algorithm. Shows whether different
+                            algorithms identify similar or different data regions.</small>
                     </div>
                     <div class="card-body">
                         <div id="pcaByAlgorithmChart"></div>
                     </div>
                 </div>
 
-                <!-- Color by Unified Cluster -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Unified Global Clusters</h5>
+                        <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Unified Global Clusters (Meta-Clustering)</h5>
+                        <small class="text-muted">Each color represents a global cluster formed by meta-clustering.
+                            Same-color centroids were grouped together regardless of their source node or
+                            algorithm.</small>
                     </div>
                     <div class="card-body">
                         <div id="pcaByClusterChart"></div>
@@ -325,18 +298,14 @@
                 {% else %}
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle"></i>
-                    PCA visualization not available (not enough centroids).
+                    Vizualizarea PCA nu este disponibilă (insuficienți centroizi).
                 </div>
                 {% endif %}
             </div>
-
-            <!-- ==================== ENSEMBLE TAB ==================== -->
             <div class="tab-pane fade" id="ensemble" role="tabpanel">
                 <h4 class="mb-4"><i class="bi bi-trophy"></i> Ensemble Analysis</h4>
 
                 {% set best_algo = analysis.ensemble_analysis.algorithm_scores[analysis.best_algorithm] %}
-
-                <!-- Best Algorithm Card -->
                 <div class="card border-success mb-4">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0">
@@ -394,8 +363,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Radar Chart -->
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">Algorithm Comparison (Radar)</h5>
@@ -405,8 +372,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ==================== NODE DETAILS TAB ==================== -->
             <div class="tab-pane fade" id="nodes" role="tabpanel">
                 <h4 class="mb-4"><i class="bi bi-hdd-network"></i> Per-Node Algorithm Breakdown</h4>
 
@@ -468,7 +433,6 @@
                 {% endfor %}
 
                 {% else %}
-                <!-- Fallback -->
                 {% for algo, scores in analysis.ensemble_analysis.algorithm_scores.items() %}
                 <div class="card mb-3">
                     <div class="card-header">
@@ -502,12 +466,8 @@
                 {% endfor %}
                 {% endif %}
             </div>
-
-            <!-- ==================== PERFORMANCE TAB ==================== -->
             <div class="tab-pane fade" id="performance" role="tabpanel">
                 <h4 class="mb-4"><i class="bi bi-speedometer2"></i> System Performance</h4>
-
-                <!-- Per-node performance cards -->
                 {% if node_performance %}
                 <div class="row mb-4">
                     {% for node_id, perf in node_performance.items() %}
@@ -570,8 +530,6 @@
                     Make sure <code>psutil</code> is installed on each node.
                 </div>
                 {% endif %}
-
-                <!-- Contribution Breakdown -->
                 {% if node_participation %}
                 <div class="card">
                     <div class="card-header">
@@ -621,8 +579,6 @@
                 </div>
                 {% endif %}
             </div>
-
-            <!-- ==================== EVALUATION TAB ==================== -->
             <div class="tab-pane fade" id="evaluation" role="tabpanel">
                 <h4 class="mb-4">
                     <i class="bi bi-clipboard-data"></i> Comparative Evaluation
@@ -633,8 +589,6 @@
                     Sensitivity analysis showing how different algorithms perform across nodes,
                     quality vs speed tradeoffs, and clustering stability.
                 </div>
-
-                <!-- Quality vs Speed Scatter -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">
@@ -645,8 +599,6 @@
                         <div id="qualitySpeedChart"></div>
                     </div>
                 </div>
-
-                <!-- Silhouette Heatmap -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">
@@ -657,8 +609,6 @@
                         <div id="silhouetteHeatmapChart"></div>
                     </div>
                 </div>
-
-                <!-- Clusters Found Comparison -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">
@@ -669,8 +619,6 @@
                         <div id="clustersComparisonChart"></div>
                     </div>
                 </div>
-
-                <!-- Execution Time Comparison -->
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">
@@ -682,14 +630,10 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ==================== INSIGHTS TAB ==================== -->
             <div class="tab-pane fade" id="insights" role="tabpanel">
                 <h4 class="mb-4"><i class="bi bi-lightbulb"></i> Cross-Organizational Insights</h4>
 
                 {% set ci = analysis.cross_org_insights %}
-
-                <!-- Summary Statistics -->
                 {% if ci and ci.summary_stats %}
                 <div class="row mb-4">
                     <div class="col-md-3">
@@ -726,8 +670,6 @@
                     </div>
                 </div>
                 {% endif %}
-
-                <!-- Cross-Organizational Patterns -->
                 {% if ci and ci.cross_org_clusters %}
                 {% for insight in ci.cross_org_clusters %}
                 <div class="card mb-3 border-warning">
@@ -798,8 +740,6 @@
                     No cross-organizational patterns detected in this analysis.
                 </div>
                 {% endif %}
-
-                <!-- Key Findings -->
                 <div class="card mt-4">
                     <div class="card-header bg-info text-white">
                         <h5 class="mb-0"><i class="bi bi-key"></i> Key Findings</h5>
@@ -842,7 +782,6 @@
 </div>
 
 {% else %}
-<!-- Non-completed status -->
 <div class="row">
     <div class="col-12">
         <div class="alert alert-warning">

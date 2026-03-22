@@ -54,17 +54,13 @@ class IoTNode(BaseNode):
         """
         np.random.seed(44)
         
-        # 3 environmental conditions + anomalies
-        
-        # Condition 1: Normal office (50%)
         n1 = int(n_samples * 0.5)
         normal = np.random.multivariate_normal(
-            mean=[22, 45, 400, 300, 40, 0.3],  # Temp(C), Humidity(%), CO2(ppm), Light(lux), Noise(dB), Motion
+            mean=[22, 45, 400, 300, 40, 0.3],  
             cov=np.diag([4, 25, 2500, 10000, 25, 0.04]),
             size=n1
         )
         
-        # Condition 2: High occupancy (30%)
         n2 = int(n_samples * 0.3)
         occupied = np.random.multivariate_normal(
             mean=[24, 55, 800, 500, 60, 0.8],
@@ -72,7 +68,6 @@ class IoTNode(BaseNode):
             size=n2
         )
         
-        # Condition 3: Night/empty (15%)
         n3 = int(n_samples * 0.15)
         empty = np.random.multivariate_normal(
             mean=[19, 40, 300, 50, 25, 0.05],
@@ -80,7 +75,6 @@ class IoTNode(BaseNode):
             size=n3
         )
         
-        # Anomalies: Sensor failures (5%)
         n4 = n_samples - n1 - n2 - n3
         anomalies = np.random.multivariate_normal(
             mean=[30, 80, 2000, 1000, 90, 1.0],
@@ -88,24 +82,20 @@ class IoTNode(BaseNode):
             size=n4
         )
         
-        # Combine
         data = np.vstack([normal, occupied, empty, anomalies])
         
-        # Add sensor failures (missing readings) (7%)
         mask = np.random.random(data.shape) < 0.07
         data[mask] = np.nan
         
-        # Realistic ranges
-        data[:, 0] = np.clip(data[:, 0], -10, 50)  # Temperature
-        data[:, 1] = np.clip(data[:, 1], 0, 100)  # Humidity
-        data[:, 2] = np.clip(data[:, 2], 200, 5000)  # CO2
-        data[:, 3] = np.clip(data[:, 3], 0, 2000)  # Light
-        data[:, 4] = np.clip(data[:, 4], 0, 120)  # Noise
-        data[:, 5] = np.clip(data[:, 5], 0, 1)  # Motion (binary-ish)
+        data[:, 0] = np.clip(data[:, 0], -10, 50)  
+        data[:, 1] = np.clip(data[:, 1], 0, 100) 
+        data[:, 2] = np.clip(data[:, 2], 200, 5000)  
+        data[:, 3] = np.clip(data[:, 3], 0, 2000)  
+        data[:, 4] = np.clip(data[:, 4], 0, 120)  
+        data[:, 5] = np.clip(data[:, 5], 0, 1)  
         
         self.logger.info(f"Generated {n_samples} sample sensor readings")
         
-        # Save
         df = pd.DataFrame(
             data,
             columns=['Temperature', 'Humidity', 'CO2', 'Light', 'Noise', 'Motion']
@@ -126,30 +116,20 @@ class IoTNode(BaseNode):
         """
         self.logger.info("Preprocessing IoT sensor data...")
         
-        # Convert to DataFrame for easier manipulation
         df = pd.DataFrame(data)
         
-        # Forward fill (assume sensors report last known value)
         df = df.ffill()
         
-        # If still NaN (first rows), use backward fill
         df = df.bfill()
         
-        # Convert back to numpy
         data = df.values
         
-        # RobustScaler: uses median and IQR (resistant to outliers)
         scaler = RobustScaler()
         data = scaler.fit_transform(data)
         
         self.logger.info("Applied RobustScaler (outlier-resistant)")
         
         return data
-
-
-# ============================================
-# Flask API
-# ============================================
 
 app = Flask(__name__)
 

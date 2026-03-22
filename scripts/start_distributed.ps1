@@ -1,6 +1,4 @@
-# Distributed Clustering System - Startup Script
-# Starts all nodes + orchestrator + UI in separate windows
-
+﻿
 $projectPath = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $venvActivate = "$projectPath\.venv\Scripts\Activate.ps1"
 
@@ -41,8 +39,6 @@ python $Script
     
     Write-Host "  [OK] Started: $Name (Port $Port)" -ForegroundColor Green
 }
-
-# Start Global Orchestrator FIRST
 Write-Host "Starting Global Orchestrator..." -ForegroundColor Yellow
 Start-Service `
     -Name "Global Orchestrator" `
@@ -52,8 +48,6 @@ Start-Service `
     -WindowStyle "Minimized"
 
 Start-Sleep -Seconds 3
-
-# Start Distributed Nodes
 Write-Host ""
 Write-Host "Starting Distributed Nodes..." -ForegroundColor Yellow
 
@@ -80,8 +74,6 @@ Start-Service `
     -Type "IOT"
 
 Start-Sleep -Seconds 2
-
-# Start Web UI
 Write-Host ""
 Write-Host "Starting Web Interface..." -ForegroundColor Yellow
 
@@ -93,8 +85,6 @@ Start-Service `
     -WindowStyle "Normal"
 
 Start-Sleep -Seconds 2
-
-# Summary
 Write-Host ""
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host "        ALL SERVICES STARTED SUCCESSFULLY!                       " -ForegroundColor Cyan
@@ -113,8 +103,6 @@ Write-Host "  Run CLI Analysis:    python scripts\run_full_analysis.py" -Foregro
 Write-Host "  Check Status:        python scripts\check_status.py" -ForegroundColor White
 Write-Host "  Stop All Services:   .\scripts\stop_all.ps1" -ForegroundColor White
 Write-Host ""
-
-# Auto-open browser after 3 seconds
 Write-Host "Opening web browser in 3 seconds..." -ForegroundColor Yellow
 Start-Sleep -Seconds 3
 Start-Process "http://localhost:9000"

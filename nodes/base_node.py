@@ -51,8 +51,6 @@ class BaseNode(ABC):
         self.port = self.config['port']
         self.algorithms = self.config['algorithms']
         self.global_orchestrator_url = self.config.get('global_orchestrator_url')
-
-        # Flatten algorithm_params into config for backward compat
         algo_params = self.config.get('algorithm_params', {})
         for key, val in algo_params.items():
             if key not in self.config:
@@ -64,13 +62,7 @@ class BaseNode(ABC):
 
         self.logger = self._setup_logger()
         self.logger.info(f"Node initialized: {self.node_id}")
-
-        # Auto-seed default dataset to DB on first run
         self._auto_seed_default_dataset()
-
-    # ========================================
-    # Logger
-    # ========================================
 
     def _setup_logger(self) -> logging.Logger:
         logger = logging.getLogger(self.node_id)
@@ -88,10 +80,6 @@ class BaseNode(ABC):
         logger.addHandler(ch)
         return logger
 
-    # ========================================
-    # DB Repository helper
-    # ========================================
-
     def _get_repository(self):
         """Lazy import of repository to avoid circular imports."""
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -99,10 +87,6 @@ class BaseNode(ABC):
             sys.path.insert(0, project_root)
         from db.repository import DistributedRepository
         return DistributedRepository
-
-    # ========================================
-    # Auto-seed default dataset
-    # ========================================
 
     def _auto_seed_default_dataset(self):
         """
@@ -121,11 +105,7 @@ class BaseNode(ABC):
                 return
 
             self.logger.info("No datasets in DB — seeding default dataset...")
-
-            # Load local data (triggers generation if CSV doesn't exist)
             raw_data = self.load_local_data()
-
-            # Read the CSV file that was just created/loaded
             data_path = self.config.get('data_path', '')
             if os.path.exists(data_path):
                 with open(data_path, 'rb') as f:
@@ -133,15 +113,12 @@ class BaseNode(ABC):
                 filename = os.path.basename(data_path)
                 file_type = 'csv'
             else:
-                # No file on disk — create CSV from numpy array
                 df = pd.DataFrame(raw_data)
                 buf = io.BytesIO()
                 df.to_csv(buf, index=False)
                 file_bytes = buf.getvalue()
                 filename = f'{self.node_id}_default.csv'
                 file_type = 'csv'
-
-            # Parse columns info
             df = pd.read_csv(io.BytesIO(file_bytes))
             numeric_cols = list(df.select_dtypes(include='number').columns)
             columns_info = {
@@ -149,8 +126,6 @@ class BaseNode(ABC):
                 'dtypes': {col: str(dtype) for col, dtype in df.dtypes.items()},
                 'numeric_columns': numeric_cols,
             }
-
-            # Save to DB with is_default=True
             dataset_name = f"{self.node_id} — Default ({self.node_type})"
             dataset_id = repo.save_dataset(
                 name=dataset_name,
@@ -162,8 +137,6 @@ class BaseNode(ABC):
                 description=f"Auto-generated default dataset for {self.node_id}",
                 is_default=True,
             )
-
-            # Assign to this node and set as active
             repo.assign_dataset_to_node(self.node_id, dataset_id, set_active=True)
 
             self.logger.info(
@@ -173,10 +146,6 @@ class BaseNode(ABC):
 
         except Exception as e:
             self.logger.warning(f"Auto-seed failed (non-fatal, will use local data): {e}")
-
-    # ========================================
-    # System Metrics
-    # ========================================
 
     def _collect_system_metrics(self) -> Dict[str, Any]:
         """Collect system-wide CPU and process memory usage."""
@@ -190,10 +159,7 @@ class BaseNode(ABC):
             return metrics
 
         try:
-            # System-wide CPU (0-100%), averaged over a short window
             metrics['cpu_usage_percent'] = round(psutil.cpu_percent(interval=0.5), 1)
-
-            # Process memory in MB
             proc = psutil.Process(os.getpid())
             mem_info = proc.memory_info()
             metrics['memory_usage_mb'] = round(mem_info.rss / (1024 * 1024), 1)
@@ -202,10 +168,6 @@ class BaseNode(ABC):
             self.logger.warning(f"Failed to collect system metrics: {e}")
 
         return metrics
-
-    # ========================================
-    # Data Loading
-    # ========================================
 
     def _try_load_from_db(self) -> Optional[np.ndarray]:
         """Try to load active dataset from DB. Returns numpy array or None."""
@@ -256,20 +218,12 @@ class BaseNode(ABC):
         """Preprocess data (scaling, imputation, etc.)."""
         pass
 
-    # ========================================
-    # Clustering
-    # ========================================
-
     def run_local_clustering(self) -> Dict[str, Any]:
         """Run all configured algorithms on the node's data."""
         self.logger.info(f"Starting local clustering on {self.node_id}")
-
-        # System metrics BEFORE
         metrics_before = self._collect_system_metrics()
 
         start_time = time.time()
-
-        # Priority: DB dataset > local file > generated data
         self.data = self._try_load_from_db()
         if self.data is None:
             self.logger.info("No active DB dataset — using local data source")
@@ -280,11 +234,7 @@ class BaseNode(ABC):
             f"Loaded {len(self.data)} data points "
             f"with {self.data.shape[1]} features ({load_time:.2f}s)"
         )
-
-        # Preprocess
         self.data = self.preprocess_data(self.data)
-
-        # Run each algorithm
         results = {}
         for algo_name in self.algorithms:
             self.logger.info(f"Running {algo_name}...")
@@ -299,8 +249,6 @@ class BaseNode(ABC):
             )
 
         self.local_results = results
-
-        # System metrics AFTER (peak)
         metrics_after = self._collect_system_metrics()
         self.system_metrics = {
             'cpu_usage_percent': max(
@@ -322,8 +270,6 @@ class BaseNode(ABC):
     def _run_algorithm(self, algo_name: str) -> Dict[str, Any]:
         """Run a specific clustering algorithm and return metrics."""
         n_samples = len(self.data)
-
-        # ---- Algorithm selection ----
 
         if algo_name == 'KMEANS':
             labels = KMeans(
@@ -389,8 +335,6 @@ class BaseNode(ABC):
         else:
             raise ValueError(f"Unknown algorithm: {algo_name}")
 
-        # ---- Compute metrics ----
-
         unique_labels = set(labels)
         if -1 in unique_labels:
             unique_labels.remove(-1)
@@ -405,8 +349,6 @@ class BaseNode(ABC):
             db_score = davies_bouldin_score(self.data, labels) if n_clusters > 1 else 0.0
         except Exception:
             db_score = 0.0
-
-        # ---- Cluster statistics ----
 
         centers = []
         sizes = []
@@ -431,10 +373,6 @@ class BaseNode(ABC):
             'cluster_stds': stds,
             'total_points': n_samples,
         }
-
-    # ========================================
-    # Summary & Communication
-    # ========================================
 
     def _build_local_summary(self) -> Dict[str, Any]:
         """Build the summary dict sent to the orchestrator."""

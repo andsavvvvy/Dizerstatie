@@ -30,8 +30,6 @@ class MedicalNode(BaseNode):
         
         try:
             df = pd.read_csv(data_path)
-            
-            # Selectează doar coloane numerice
             numeric_cols = df.select_dtypes(include=[np.number]).columns
             data = df[numeric_cols].values
             
@@ -52,41 +50,27 @@ class MedicalNode(BaseNode):
         Features: Age, BMI, BloodPressure, Cholesterol, HeartRate
         """
         np.random.seed(42)
-        
-        # 3 patient profiles
-        
-        # Profile 1: Young healthy (40%)
         n1 = int(n_samples * 0.4)
         young_healthy = np.random.multivariate_normal(
             mean=[30, 22, 115, 180, 70],
             cov=np.diag([25, 4, 100, 400, 16]),
             size=n1
         )
-        
-        # Profile 2: Middle-aged at risk (35%)
         n2 = int(n_samples * 0.35)
         middle_risk = np.random.multivariate_normal(
             mean=[50, 28, 135, 230, 78],
             cov=np.diag([36, 9, 225, 900, 25]),
             size=n2
         )
-        
-        # Profile 3: Elderly chronic (25%)
         n3 = n_samples - n1 - n2
         elderly = np.random.multivariate_normal(
             mean=[70, 26, 150, 260, 72],
             cov=np.diag([25, 6, 400, 1600, 36]),
             size=n3
         )
-        
-        # Combine
         data = np.vstack([young_healthy, middle_risk, elderly])
-        
-        # Add missing values (2%)
         mask = np.random.random(data.shape) < 0.02
         data[mask] = np.nan
-        
-        # Realistic ranges
         data[:, 0] = np.clip(data[:, 0], 18, 95)    # Age
         data[:, 1] = np.clip(data[:, 1], 15, 45)     # BMI
         data[:, 2] = np.clip(data[:, 2], 80, 200)    # Blood Pressure
@@ -94,8 +78,6 @@ class MedicalNode(BaseNode):
         data[:, 4] = np.clip(data[:, 4], 45, 120)    # Heart Rate
         
         self.logger.info(f"Generated {n_samples} sample patient records")
-        
-        # Save
         df = pd.DataFrame(
             data,
             columns=['Age', 'BMI', 'BloodPressure', 'Cholesterol', 'HeartRate']
@@ -114,23 +96,14 @@ class MedicalNode(BaseNode):
         - Tratare valori lipsă
         """
         self.logger.info("Preprocessing medical data...")
-        
-        # Tratare NaN
         imputer = SimpleImputer(strategy='median')
         data = imputer.fit_transform(data)
-        
-        # Normalizare
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
         
         self.logger.info("Applied StandardScaler (Z-score normalization)")
         
         return data
-
-
-# ============================================
-# Flask API
-# ============================================
 
 app = Flask(__name__)
 
@@ -180,11 +153,7 @@ def send_to_global():
                 'status': 'error',
                 'message': 'session_id required'
             }), 400
-        
-        # Clustering local
         medical_node.run_local_clustering()
-        
-        # Trimite la global
         response = medical_node.send_to_global_orchestrator(session_id)
         
         return jsonify({

@@ -1,4 +1,3 @@
-# Stop all services
 
 $projectPath = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 

@@ -1,6 +1,3 @@
-/* Custom styles for Distributed Clustering UI */
-
-/* General */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background-color: #f8f9fa;
@@ -10,8 +7,6 @@ body {
     font-weight: 600;
     font-size: 1.2rem;
 }
-
-/* Cards */
 .card {
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     border-radius: 0.5rem;
@@ -22,22 +17,16 @@ body {
     font-weight: 600;
     border-bottom: 2px solid rgba(0, 0, 0, 0.125);
 }
-
-/* Status badges */
 .badge {
     font-weight: 500;
     padding: 0.5em 0.75em;
 }
-
-/* Code blocks */
 code {
     background-color: #f8f9fa;
     padding: 0.2rem 0.4rem;
     border-radius: 0.25rem;
     font-size: 0.875em;
 }
-
-/* Tables */
 .table {
     margin-bottom: 0;
 }
@@ -45,19 +34,13 @@ code {
 .table-hover tbody tr:hover {
     background-color: rgba(13, 110, 253, 0.05);
 }
-
-/* Footer */
 .footer {
     margin-top: auto;
     border-top: 1px solid #dee2e6;
 }
-
-/* Architecture diagram */
 .architecture-diagram {
     padding: 20px 0;
 }
-
-/* Progress Steps */
 .progress-steps {
     display: flex;
     justify-content: space-between;
@@ -105,8 +88,6 @@ code {
     font-weight: 500;
     font-size: 0.9rem;
 }
-
-/* Log Container */
 .log-container {
     max-height: 500px;
     overflow-y: auto;
@@ -147,8 +128,6 @@ code {
 .log-info .log-message {
     color: #569cd6;
 }
-
-/* Responsive adjustments */
 @media (max-width: 768px) {
     .progress-steps {
         flex-direction: column;
@@ -168,8 +147,6 @@ code {
         font-size: 2rem;
     }
 }
-
-/* Animation for new elements */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -185,8 +162,6 @@ code {
 .fade-in {
     animation: fadeIn 0.3s ease-in;
 }
-
-/* Custom scrollbar for log container */
 .log-container::-webkit-scrollbar {
     width: 8px;
 }
@@ -203,15 +178,11 @@ code {
 .log-container::-webkit-scrollbar-thumb:hover {
     background: #666;
 }
-
-/* Loading spinner */
 .spinner-border-sm {
     width: 1rem;
     height: 1rem;
     border-width: 0.2em;
 }
-
-/* Alert improvements */
 .alert {
     border-left: 4px solid;
 }

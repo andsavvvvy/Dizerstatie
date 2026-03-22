@@ -90,10 +90,6 @@ class GlobalAggregationEngine:
             interpretation += " Consumer behavior correlated with environmental conditions."
         return interpretation
 
-    # ========================================
-    # Per-algorithm aggregation
-    # ========================================
-
     def aggregate_by_algorithm(self, algorithm: str) -> Dict[str, Any]:
         logger.info(f"\n{'='*60}\nAggregating: {algorithm}\n{'='*60}")
 
@@ -167,10 +163,6 @@ class GlobalAggregationEngine:
             'clusters': summary, 'total_points_represented': int(np.sum(all_weights)),
         }
 
-    # ========================================
-    # Ensemble analysis
-    # ========================================
-
     def ensemble_across_algorithms(self) -> Dict[str, Any]:
         logger.info(f"\n{'='*60}\nENSEMBLE ANALYSIS\n{'='*60}")
 
@@ -224,10 +216,6 @@ class GlobalAggregationEngine:
                 if q in ("excellent", "good")
                 else "Consider parameter tuning.")
         return rec
-
-    # ========================================
-    # Cross-organizational insights (UNIFIED)
-    # ========================================
 
     def extract_cross_org_insights(self) -> Dict[str, Any]:
         """
@@ -286,8 +274,6 @@ class GlobalAggregationEngine:
 
         cross_org_count = 0
         org_specific_count = 0
-
-        # Build node sample lookup
         node_samples = {}
         for nr in self.node_results:
             node_samples[nr['node_id']] = nr['data_summary']['n_samples']
@@ -369,10 +355,6 @@ class GlobalAggregationEngine:
             interpretation += "GLOBAL pattern spanning all domains — significant finding. "
         return interpretation
 
-    # ========================================
-    # PCA Visualization Data
-    # ========================================
-
     def generate_pca_visualization(self) -> Dict[str, Any]:
         """
         Generate 2D PCA projections of all centroids for visualization.
@@ -403,14 +385,10 @@ class GlobalAggregationEngine:
             return {}
 
         aligned = self._align_centroids(all_centroids)
-
-        # PCA to 2D
         pca = PCA(n_components=2)
         coords_2d = pca.fit_transform(aligned)
 
         explained_variance = pca.explained_variance_ratio_.tolist()
-
-        # Also compute unified cluster labels for the global view
         threshold = self._calculate_optimal_threshold(aligned) * 1.2
         if len(aligned) >= 2:
             unified_labels = AgglomerativeClustering(
@@ -418,8 +396,6 @@ class GlobalAggregationEngine:
             ).fit_predict(aligned)
         else:
             unified_labels = np.array([0] * len(aligned))
-
-        # Build visualization points
         points = []
         for i, meta in enumerate(centroid_meta):
             points.append({
@@ -451,10 +427,6 @@ class GlobalAggregationEngine:
 
         return viz_data
 
-    # ========================================
-    # Generate complete report
-    # ========================================
-
     def generate_global_report(self) -> Dict[str, Any]:
         logger.info(f"\n{'='*60}\nGENERATING GLOBAL REPORT\n{'='*60}")
 
@@ -477,20 +449,12 @@ class GlobalAggregationEngine:
                 ],
             },
         }
-
-        # Per-algorithm aggregation
         all_algos = self._get_all_algorithms()
         report['algorithm_aggregations'] = {}
         for algo in sorted(all_algos):
             report['algorithm_aggregations'][algo] = self.aggregate_by_algorithm(algo)
-
-        # Ensemble
         report['ensemble_analysis'] = self.ensemble_across_algorithms()
-
-        # Cross-org insights
         report['insights'] = self.extract_cross_org_insights()
-
-        # PCA visualization
         report['pca_visualization'] = self.generate_pca_visualization()
 
         logger.info(f"\nReport generated:")

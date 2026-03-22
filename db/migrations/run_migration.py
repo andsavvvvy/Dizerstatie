@@ -7,7 +7,6 @@ import os
 import sys
 from dotenv import load_dotenv
 
-# Load .env from project root
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 load_dotenv(os.path.join(project_root, '.env'))
 
@@ -15,15 +14,12 @@ load_dotenv(os.path.join(project_root, '.env'))
 def run_migration():
     """Execute SQL migration file"""
     
-    # Read SQL file
     script_dir = os.path.dirname(__file__)
     sql_file = os.path.join(script_dir, 'schema_distributed.sql')
     
     with open(sql_file, 'r', encoding='utf-8') as f:
         sql_script = f.read()
     
-    # Connect WITHOUT specifying a database first
-    # (so CREATE DATABASE IF NOT EXISTS can work)
     print("Connecting to MySQL server...")
     
     try:
@@ -45,14 +41,12 @@ def run_migration():
     
     cursor = conn.cursor()
     
-    # Split by semicolons but filter empty statements
     statements = [s.strip() for s in sql_script.split(';') if s.strip()]
     
     success_count = 0
     error_count = 0
     
     for statement in statements:
-        # Skip pure comments
         lines = [l for l in statement.split('\n') if not l.strip().startswith('--')]
         clean = '\n'.join(lines).strip()
         if not clean:
@@ -61,7 +55,6 @@ def run_migration():
         try:
             cursor.execute(statement)
             
-            # Consume any results (SELECT statements)
             if cursor.with_rows:
                 rows = cursor.fetchall()
                 for row in rows:

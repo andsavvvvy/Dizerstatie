@@ -21,8 +21,6 @@ import os
 from datetime import datetime
 from typing import List, Dict, Any
 import sys
-
-# Configuration
 NODES = [
     {
         'url': 'http://localhost:6001',
@@ -45,8 +43,6 @@ NODES = [
 ]
 
 GLOBAL_ORCHESTRATOR = 'http://localhost:7000'
-
-# Colors for terminal output
 class Colors:
     HEADER = '\033[95m'
     BLUE = '\033[94m'
@@ -160,7 +156,6 @@ def trigger_node_clustering(session_id: str) -> Dict[str, Any]:
         print("-" * 50)
         
         try:
-            # Trigger local clustering
             print_info("Running local clustering...")
             
             start_time = time.time()
@@ -225,13 +220,9 @@ def wait_for_aggregation_ready(session_id: str, max_wait: int = 60) -> bool:
                 elif status == 'completed':
                     print_success("\nAnalysis already completed!")
                     return True
-                
-                # Show progress
                 received = data.get('received_nodes', 0)
                 expected = data.get('expected_nodes', 0)
                 elapsed = int(time.time() - start_time)
-                
-                # Animated waiting
                 dots = (dots + 1) % 4
                 dot_str = '.' * dots + ' ' * (3 - dots)
                 
@@ -288,20 +279,14 @@ def display_report(report: Dict[str, Any], session_id: str):
     
     metadata = report['metadata']
     ensemble = report['ensemble_analysis']
-    
-    # Header
     print(f"{Colors.BOLD}╔{'═'*68}╗{Colors.ENDC}")
     print(f"{Colors.BOLD}║  DISTRIBUTED DATA MINING ANALYSIS REPORT{' '*25}║{Colors.ENDC}")
     print(f"{Colors.BOLD}╚{'═'*68}╝{Colors.ENDC}\n")
-    
-    # System Overview
     print(f"{Colors.CYAN}{Colors.BOLD}📊 SYSTEM OVERVIEW{Colors.ENDC}")
     print(f"{'─'*70}")
     print(f"  Total Nodes:       {metadata['total_nodes']}")
     print(f"  Total Data Points: {metadata['total_data_points']:,}")
     print()
-    
-    # Node Details
     print(f"{Colors.CYAN}{Colors.BOLD}🖥️  NODE SUMMARY{Colors.ENDC}")
     print(f"{'─'*70}")
     for node in metadata['nodes_summary']:
@@ -311,8 +296,6 @@ def display_report(report: Dict[str, Any], session_id: str):
         print(f"    Features:   {node['n_features']}")
         print(f"    Algorithms: {', '.join(node['algorithms_used'])}")
     print()
-    
-    # Best Algorithm
     best_algo = ensemble['best_algorithm']
     best_score = ensemble['algorithm_scores'][best_algo]
     
@@ -326,8 +309,6 @@ def display_report(report: Dict[str, Any], session_id: str):
     print(f"  {Colors.BOLD}Recommendation:{Colors.ENDC}")
     print(f"  {ensemble['recommendation']}")
     print()
-    
-    # Algorithm Performance Table
     print(f"{Colors.CYAN}{Colors.BOLD}📈 ALGORITHM PERFORMANCE (Across All Nodes){Colors.ENDC}")
     print(f"{'─'*70}")
     print(f"  {'Algorithm':<12} {'Avg Silhouette':<15} {'Consistency':<12} {'Nodes':<6}")
@@ -341,8 +322,6 @@ def display_report(report: Dict[str, Any], session_id: str):
         marker = "★" if algo == best_algo else " "
         print(f"  {marker} {algo:<10} {scores['avg_silhouette']:<15.4f} {scores['consistency']:<12.4f} {scores['nodes_count']:<6}")
     print()
-    
-    # Cross-Organizational Insights
     if 'insights' in report and report['insights']['cross_org_clusters']:
         print(f"{Colors.YELLOW}{Colors.BOLD}🔗 CROSS-ORGANIZATIONAL INSIGHTS{Colors.ENDC}")
         print(f"{'─'*70}")
@@ -355,22 +334,14 @@ def display_report(report: Dict[str, Any], session_id: str):
             print(f"    Cohesion:       {insight['cohesion']:.3f}")
             print(f"    Interpretation: {insight['interpretation']}")
         print()
-    
-    # Save Report
     save_report(report, session_id)
 
 def save_report(report: Dict[str, Any], session_id: str):
     """Save report to JSON file"""
-    
-    # Ensure reports directory exists
     reports_dir = 'reports'
     os.makedirs(reports_dir, exist_ok=True)
-    
-    # Generate filename
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"{reports_dir}/analysis_{timestamp}_{session_id[:8]}.json"
-    
-    # Save
     with open(filename, 'w') as f:
         json.dump(report, f, indent=2, default=str)
     
@@ -379,8 +350,6 @@ def save_report(report: Dict[str, Any], session_id: str):
 
 def main():
     """Main execution"""
-    
-    # Banner
     print(f"\n{Colors.CYAN}{Colors.BOLD}")
     print("╔═══════════════════════════════════════════════════════════════════╗")
     print("║                                                                   ║")
@@ -389,8 +358,6 @@ def main():
     print("║                                                                   ║")
     print("╚═══════════════════════════════════════════════════════════════════╝")
     print(f"{Colors.ENDC}\n")
-    
-    # Pre-flight checks
     print_header("PRE-FLIGHT CHECKS")
     
     if not check_orchestrator_health():
@@ -406,8 +373,6 @@ def main():
         if response.lower() != 'y':
             print_info("Aborted by user")
             sys.exit(0)
-    
-    # Start analysis
     overall_start = time.time()
     
     session_id = start_global_analysis()

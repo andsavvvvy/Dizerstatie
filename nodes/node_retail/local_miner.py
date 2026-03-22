@@ -33,8 +33,6 @@ class RetailNode(BaseNode):
         
         try:
             df = pd.read_csv(data_path)
-            
-            # Select numeric columns
             numeric_cols = df.select_dtypes(include=[np.number]).columns
             data = df[numeric_cols].values
             
@@ -56,49 +54,33 @@ class RetailNode(BaseNode):
                   Recency (days), Product Categories Visited
         """
         np.random.seed(43)
-        
-        # 4 customer segments
-        
-        # Segment 1: Occasional shoppers (30%)
         n1 = int(n_samples * 0.3)
         occasional = np.random.multivariate_normal(
             mean=[5, 30, 2, 90, 2],  # Purchases, Avg $, Frequency/month, Days ago, Categories
             cov=np.diag([4, 100, 1, 400, 1]),
             size=n1
         )
-        
-        # Segment 2: Regular customers (35%)
         n2 = int(n_samples * 0.35)
         regular = np.random.multivariate_normal(
             mean=[20, 50, 8, 30, 4],
             cov=np.diag([25, 225, 4, 225, 2]),
             size=n2
         )
-        
-        # Segment 3: VIP customers (20%)
         n3 = int(n_samples * 0.2)
         vip = np.random.multivariate_normal(
             mean=[50, 150, 20, 7, 6],
             cov=np.diag([100, 2500, 25, 16, 2]),
             size=n3
         )
-        
-        # Segment 4: Churned customers (15%)
         n4 = n_samples - n1 - n2 - n3
         churned = np.random.multivariate_normal(
             mean=[3, 25, 1, 180, 1],
             cov=np.diag([2, 64, 0.5, 900, 0.5]),
             size=n4
         )
-        
-        # Combine
         data = np.vstack([occasional, regular, vip, churned])
-        
-        # Add missing values (3%)
         mask = np.random.random(data.shape) < 0.03
         data[mask] = np.nan
-        
-        # Ensure non-negative values
         data = np.abs(data)
         data[:, 0] = np.clip(data[:, 0], 1, 100)  # Total purchases
         data[:, 1] = np.clip(data[:, 1], 10, 500)  # Avg amount
@@ -107,8 +89,6 @@ class RetailNode(BaseNode):
         data[:, 4] = np.clip(data[:, 4], 1, 10)  # Categories
         
         self.logger.info(f"Generated {n_samples} sample customer records")
-        
-        # Save
         df = pd.DataFrame(
             data,
             columns=['TotalPurchases', 'AvgAmount', 'Frequency', 'Recency', 'Categories']
@@ -128,24 +108,14 @@ class RetailNode(BaseNode):
         - MinMax scaling (preserves 0 values, important for retail)
         """
         self.logger.info("Preprocessing retail data...")
-        
-        # Handle missing
         imputer = SimpleImputer(strategy='mean')
         data = imputer.fit_transform(data)
-        
-        # MinMax scaling [0, 1]
-        # Better for retail: preserves "no purchase" = 0
         scaler = MinMaxScaler()
         data = scaler.fit_transform(data)
         
         self.logger.info("Scaled data to [0, 1] range")
         
         return data
-
-
-# ============================================
-# Flask API
-# ============================================
 
 app = Flask(__name__)
 
