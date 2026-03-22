@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}New Analysis - Distributed Clustering{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-5">
+            <i class="bi bi-play-circle"></i> Start New Analysis
+        </h1>
+        <p class="lead">Run distributed clustering across all nodes</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> Analysis Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form id="analysisForm" data-start-url="{{ url_for('analysis_start') }}">
+                    <div class="mb-4">
+                        <label for="description" class="form-label">
+                            <strong>Description</strong>
+                        </label>
+                        <input type="text" class="form-control" id="description" name="description"
+                            placeholder="e.g., Monthly customer segmentation">
+                        <div class="form-text">Optional description for this analysis run</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <strong>Participating Nodes</strong>
+                        </label>
+                        <div class="list-group">
+                            {% for node in nodes %}
+                            <div class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" checked disabled
+                                        id="node-{{ loop.index }}">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">{{ node.name }}</h6>
+                                        <small class="text-muted">{{ node.type }}</small>
+                                    </div>
+                                    <span class="badge bg-success">Required</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text mt-2">
+                            All {{ nodes|length }} nodes will participate in this analysis
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-info-circle"></i> Analysis Process
+                        </h6>
+                        <ol class="mb-0">
+                            <li>Initialize global analysis session</li>
+                            <li>Trigger local clustering on each node</li>
+                            <li>Wait for all nodes to submit results</li>
+                            <li>Perform global meta-clustering</li>
+                            <li>Generate ensemble analysis</li>
+                            <li>Display results and insights</li>
+                        </ol>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-play-circle"></i> Start Analysis
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-lightbulb"></i> What Happens?</h6>
+            </div>
+            <div class="card-body">
+                <p>This analysis will:</p>
+                <ul>
+                    <li>Process data locally on each node</li>
+                    <li>Run multiple clustering algorithms</li>
+                    <li>Combine results using meta-clustering</li>
+                    <li>Identify cross-organizational patterns</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="bi bi-clock"></i> Estimated Time</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Local Clustering:</strong> 2-5 seconds per node</p>
+                <p class="mb-2"><strong>Global Aggregation:</strong> 3-10 seconds</p>
+                <p class="mb-0"><strong>Total:</strong> ~10-20 seconds</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

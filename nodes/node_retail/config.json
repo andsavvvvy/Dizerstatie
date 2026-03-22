@@ -1,0 +1,27 @@
+{
+  "node_id": "retail_bucharest_01",
+  "node_type": "retail",
+  "port": 6002,
+
+  "data_path": "./nodes/node_retail/data/sales_sample.csv",
+
+  "algorithms": ["GMM", "BIRCH", "MEANSHIFT"],
+
+  "algorithm_params": {
+    "gmm_n_components": 4,
+    "birch_n_clusters": 4,
+    "meanshift_bandwidth": null
+  },
+
+  "preprocessing": {
+    "method": "minmax_scaler",
+    "handle_missing": "mean"
+  },
+
+  "global_orchestrator_url": "http://localhost:7000",
+
+  "metadata": {
+    "location": "Bucharest Retail Hub",
+    "description": "Customer behavior and sales pattern analysis"
+  }
+}

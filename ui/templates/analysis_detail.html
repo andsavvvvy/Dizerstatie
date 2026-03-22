@@ -1,0 +1,864 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - {{ analysis.session_id[:8] }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-5">
+                    <i class="bi bi-bar-chart-line"></i> Analysis Results
+                </h1>
+                <p class="lead mb-0">
+                    Session: <code>{{ analysis.session_id }}</code>
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                {% if analysis.status == 'completed' %}
+                <a href="{{ url_for('analysis_export_pdf', session_id=analysis.session_id) }}"
+                    class="btn btn-outline-danger">
+                    <i class="bi bi-file-pdf"></i> Export PDF
+                </a>
+                {% endif %}
+                <a href="{{ url_for('analyses_list') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if analysis.status == 'completed' %}
+
+<!-- ============================================ -->
+<!-- DATA FOR JS CHARTS                           -->
+<!-- ============================================ -->
+
+<script id="analysis-chart-data" type="application/json">
+{
+    "bestAlgorithm": {{ analysis.best_algorithm|tojson }},
+    "algorithms": [
+        {% for algo, scores in analysis.ensemble_analysis.algorithm_scores.items() %}
+        {
+            "name": {{ algo|tojson }},
+            "avg_silhouette": {{ scores.avg_silhouette }},
+            "consistency": {{ scores.consistency }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ]
+}
+</script>
+
+{% if analysis.pca_visualization and analysis.pca_visualization.points %}
+<script id="pca-chart-data" type="application/json">
+{{ analysis.pca_visualization|tojson }}
+</script>
+{% endif %}
+
+{% if sensitivity %}
+<script id="sensitivity-data" type="application/json">
+{{ sensitivity|tojson }}
+</script>
+{% endif %}
+
+<!-- ============================================ -->
+<!-- STATUS BADGE                                 -->
+<!-- ============================================ -->
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-success d-flex align-items-center">
+            <i class="bi bi-check-circle-fill fs-4 me-3"></i>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading mb-0">Analysis Completed Successfully</h5>
+                <small>
+                    Started: {{ analysis.created_at|datetime }} |
+                    Completed: {{ analysis.completed_at|datetime }} |
+                    Duration: {{ analysis.execution_time_total_ms|duration }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- KEY METRICS CARDS                            -->
+<!-- ============================================ -->
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <i class="bi bi-hdd-network-fill fs-1 text-primary"></i>
+                <h3 class="mt-2">{{ analysis.total_nodes }}</h3>
+                <p class="text-muted mb-0">Nodes</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center border-info">
+            <div class="card-body">
+                <i class="bi bi-database-fill fs-1 text-info"></i>
+                <h3 class="mt-2">{{ analysis.total_data_points|number }}</h3>
+                <p class="text-muted mb-0">Data Points</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <i class="bi bi-trophy-fill fs-1 text-success"></i>
+                <h3 class="mt-2">{{ analysis.best_algorithm }}</h3>
+                <p class="text-muted mb-0">Best Algorithm</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <i class="bi bi-star-fill fs-1 text-warning"></i>
+                <h3 class="mt-2">{{ "%.3f"|format(analysis.best_algorithm_score) }}</h3>
+                <p class="text-muted mb-0">Silhouette Score</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB NAVIGATION                               -->
+<!-- ============================================ -->
+
+<div class="row">
+    <div class="col-12">
+        <ul class="nav nav-tabs" id="resultsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">
+                    <i class="bi bi-grid"></i> Overview
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#visualization" type="button">
+                    <i class="bi bi-scatter-chart"></i> Visualization
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#ensemble" type="button">
+                    <i class="bi bi-trophy"></i> Ensemble
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nodes" type="button">
+                    <i class="bi bi-hdd-network"></i> Node Details
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#performance" type="button">
+                    <i class="bi bi-speedometer2"></i> Performance
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#evaluation" type="button">
+                    <i class="bi bi-clipboard-data"></i> Evaluation
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#insights" type="button">
+                    <i class="bi bi-lightbulb"></i> Insights
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content border border-top-0 p-4" id="resultsTabContent">
+
+            <!-- ==================== OVERVIEW TAB ==================== -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <h4 class="mb-4"><i class="bi bi-grid"></i> Analysis Overview</h4>
+
+                <!-- Node Participation Cards -->
+                {% if node_participation %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Node Participation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for np in node_participation %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h6><i class="bi bi-server"></i> {{ np.node_id }}</h6>
+                                        <span class="badge bg-primary mb-2">{{ np.node_type or 'unknown' }}</span>
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <tr>
+                                                <td class="text-muted">Data Points:</td>
+                                                <td><strong>{{ np.data_points_contributed|number }}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Contribution:</td>
+                                                <td><strong>{{ "%.1f"|format(np.contribution_weight * 100) }}%</strong>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Best Algorithm:</td>
+                                                <td><span class="badge bg-success">{{ np.best_local_algorithm }}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Best Score:</td>
+                                                <td><strong>{{ "%.3f"|format(np.best_local_score) }}</strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Algorithm Performance Chart -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Algorithm Performance Comparison</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="algorithmPerformanceChart"></div>
+                    </div>
+                </div>
+
+                <!-- Algorithm Statistics Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Algorithm Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Algorithm</th>
+                                        <th>Avg Silhouette</th>
+                                        <th>Std Dev</th>
+                                        <th>Consistency</th>
+                                        <th>Avg Clusters</th>
+                                        <th>Nodes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for algo, scores in
+                                    analysis.ensemble_analysis.algorithm_scores.items()|sort(attribute='1.avg_silhouette',
+                                    reverse=True) %}
+                                    <tr {% if algo==analysis.best_algorithm %}class="table-success" {% endif %}>
+                                        <td>
+                                            <strong>{{ algo }}</strong>
+                                            {% if algo == analysis.best_algorithm %}
+                                            <span class="badge bg-success ms-2">Best</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ "%.4f"|format(scores.avg_silhouette) }}</td>
+                                        <td>{{ "%.4f"|format(scores.std_silhouette) }}</td>
+                                        <td>{{ "%.4f"|format(scores.consistency) }}</td>
+                                        <td>{{ "%.1f"|format(scores.avg_clusters) }}</td>
+                                        <td>{{ scores.nodes_count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== VISUALIZATION TAB ==================== -->
+            <div class="tab-pane fade" id="visualization" role="tabpanel">
+                <h4 class="mb-4"><i class="bi bi-scatter-chart"></i> Cluster Visualization (PCA)</h4>
+
+                {% if analysis.pca_visualization and analysis.pca_visualization.points %}
+                <div class="alert alert-info mb-4">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>PCA projection</strong> of {{ analysis.pca_visualization.n_centroids }} centroids
+                    into 2D space. Total variance explained:
+                    <strong>{{ "%.1f"|format(analysis.pca_visualization.total_variance_explained * 100) }}%</strong>
+                    (PC1: {{ "%.1f"|format(analysis.pca_visualization.explained_variance[0] * 100) }}%,
+                    PC2: {{ "%.1f"|format(analysis.pca_visualization.explained_variance[1] * 100) }}%)
+                </div>
+
+                <!-- Color by Node -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-server"></i> Centroids by Node</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="pcaByNodeChart"></div>
+                    </div>
+                </div>
+
+                <!-- Color by Algorithm -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-gear"></i> Centroids by Algorithm</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="pcaByAlgorithmChart"></div>
+                    </div>
+                </div>
+
+                <!-- Color by Unified Cluster -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Unified Global Clusters</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="pcaByClusterChart"></div>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    PCA visualization not available (not enough centroids).
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ==================== ENSEMBLE TAB ==================== -->
+            <div class="tab-pane fade" id="ensemble" role="tabpanel">
+                <h4 class="mb-4"><i class="bi bi-trophy"></i> Ensemble Analysis</h4>
+
+                {% set best_algo = analysis.ensemble_analysis.algorithm_scores[analysis.best_algorithm] %}
+
+                <!-- Best Algorithm Card -->
+                <div class="card border-success mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-award"></i> Best Algorithm: {{ analysis.best_algorithm }}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6>Performance Metrics</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Average Silhouette:</strong></td>
+                                        <td>{{ "%.4f"|format(best_algo.avg_silhouette) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Min Silhouette:</strong></td>
+                                        <td>{{ "%.4f"|format(best_algo.min_silhouette) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Max Silhouette:</strong></td>
+                                        <td>{{ "%.4f"|format(best_algo.max_silhouette) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Consistency:</strong></td>
+                                        <td>{{ "%.4f"|format(best_algo.consistency) }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div class="col-md-6">
+                                <h6>Clustering Details</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Average Clusters:</strong></td>
+                                        <td>{{ "%.1f"|format(best_algo.avg_clusters) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Nodes Used:</strong></td>
+                                        <td>{{ best_algo.nodes_count }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Std Deviation:</strong></td>
+                                        <td>{{ "%.4f"|format(best_algo.std_silhouette) }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle"></i> Recommendation
+                            </h6>
+                            <p class="mb-0">{{ analysis.ensemble_analysis.recommendation }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Radar Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Algorithm Comparison (Radar)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="ensembleComparisonChart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== NODE DETAILS TAB ==================== -->
+            <div class="tab-pane fade" id="nodes" role="tabpanel">
+                <h4 class="mb-4"><i class="bi bi-hdd-network"></i> Per-Node Algorithm Breakdown</h4>
+
+                {% if local_by_node %}
+                {% for node_id, algos in local_by_node.items() %}
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-server"></i> {{ node_id }}</h5>
+                        {% if node_participation %}
+                        {% for np in node_participation if np.node_id == node_id %}
+                        <span class="badge bg-primary">
+                            {{ np.node_type }} — {{ np.data_points_contributed|number }} points
+                        </span>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Algorithm</th>
+                                        <th>Clusters</th>
+                                        <th>Silhouette</th>
+                                        <th>Davies-Bouldin</th>
+                                        <th>Execution Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lr in algos %}
+                                    <tr>
+                                        <td><strong>{{ lr.algorithm }}</strong></td>
+                                        <td>{{ lr.n_local_clusters }}</td>
+                                        <td>
+                                            {% if lr.silhouette_score %}
+                                            <span
+                                                class="{% if lr.silhouette_score > 0.5 %}text-success{% elif lr.silhouette_score > 0.25 %}text-warning{% else %}text-danger{% endif %}">
+                                                <strong>{{ "%.4f"|format(lr.silhouette_score) }}</strong>
+                                            </span>
+                                            {% else %}
+                                            0.0
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if lr.davies_bouldin_score %}
+                                            {{ "%.4f"|format(lr.davies_bouldin_score) }}
+                                            {% else %}
+                                            N/A
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ lr.execution_time_ms }}ms</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% else %}
+                <!-- Fallback -->
+                {% for algo, scores in analysis.ensemble_analysis.algorithm_scores.items() %}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">{{ algo }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Participating Nodes</h6>
+                                <ul>
+                                    {% for node in scores.nodes_list %}
+                                    <li>{{ node }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Performance</h6>
+                                {% set bar_width = [scores.avg_silhouette * 100, 0]|max|int %}
+                                <div class="progress mb-2">
+                                    <div class="progress-bar" role="progressbar" style="width: {{ bar_width }}%">
+                                        {{ "%.2f"|format(scores.avg_silhouette) }}
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    Consistency: {{ "%.3f"|format(scores.consistency) }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- ==================== PERFORMANCE TAB ==================== -->
+            <div class="tab-pane fade" id="performance" role="tabpanel">
+                <h4 class="mb-4"><i class="bi bi-speedometer2"></i> System Performance</h4>
+
+                <!-- Per-node performance cards -->
+                {% if node_performance %}
+                <div class="row mb-4">
+                    {% for node_id, perf in node_performance.items() %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="bi bi-cpu"></i> {{ node_id }}</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tr>
+                                        <td class="text-muted">CPU Usage:</td>
+                                        <td>
+                                            {% if perf.cpu_usage_percent is not none %}
+                                            <strong>{{ "%.1f"|format(perf.cpu_usage_percent) }}%</strong>
+                                            <div class="progress mt-1" style="height: 6px;">
+                                                <div class="progress-bar
+                                                    {% if perf.cpu_usage_percent > 80 %}bg-danger
+                                                    {% elif perf.cpu_usage_percent > 50 %}bg-warning
+                                                    {% else %}bg-success{% endif %}"
+                                                    style="width: {{ perf.cpu_usage_percent }}%">
+                                                </div>
+                                            </div>
+                                            {% else %}
+                                            N/A
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Memory:</td>
+                                        <td>
+                                            {% if perf.memory_usage_mb is not none %}
+                                            <strong>{{ "%.1f"|format(perf.memory_usage_mb) }} MB</strong>
+                                            {% else %}
+                                            N/A
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Avg Silhouette:</td>
+                                        <td><strong>{{ "%.4f"|format(perf.avg_silhouette_7d) }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Algorithms Run:</td>
+                                        <td><strong>{{ perf.total_analyses_7d }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Avg Exec Time:</td>
+                                        <td><strong>{{ perf.avg_execution_time_ms }}ms</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No performance metrics available.
+                    Make sure <code>psutil</code> is installed on each node.
+                </div>
+                {% endif %}
+
+                <!-- Contribution Breakdown -->
+                {% if node_participation %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Data Contribution Breakdown</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Node</th>
+                                        <th>Type</th>
+                                        <th>Data Points</th>
+                                        <th>Contribution</th>
+                                        <th>Best Algorithm</th>
+                                        <th>Best Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for np in node_participation %}
+                                    <tr>
+                                        <td><strong>{{ np.node_id }}</strong></td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ np.node_type or '-' }}</span>
+                                        </td>
+                                        <td>{{ np.data_points_contributed|number }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                    <div class="progress-bar bg-primary"
+                                                        style="width: {{ (np.contribution_weight * 100)|int }}%">
+                                                    </div>
+                                                </div>
+                                                <small>{{ "%.1f"|format(np.contribution_weight * 100) }}%</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">{{ np.best_local_algorithm }}</span>
+                                        </td>
+                                        <td><strong>{{ "%.3f"|format(np.best_local_score) }}</strong></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ==================== EVALUATION TAB ==================== -->
+            <div class="tab-pane fade" id="evaluation" role="tabpanel">
+                <h4 class="mb-4">
+                    <i class="bi bi-clipboard-data"></i> Comparative Evaluation
+                </h4>
+
+                <div class="alert alert-info mb-4">
+                    <i class="bi bi-info-circle"></i>
+                    Sensitivity analysis showing how different algorithms perform across nodes,
+                    quality vs speed tradeoffs, and clustering stability.
+                </div>
+
+                <!-- Quality vs Speed Scatter -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-lightning"></i> Quality vs Speed Tradeoff
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="qualitySpeedChart"></div>
+                    </div>
+                </div>
+
+                <!-- Silhouette Heatmap -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-bar-chart-steps"></i> Silhouette Score Heatmap
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="silhouetteHeatmapChart"></div>
+                    </div>
+                </div>
+
+                <!-- Clusters Found Comparison -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-diagram-2"></i> Number of Clusters Found
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="clustersComparisonChart"></div>
+                    </div>
+                </div>
+
+                <!-- Execution Time Comparison -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history"></i> Execution Time Comparison
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="executionTimeChart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== INSIGHTS TAB ==================== -->
+            <div class="tab-pane fade" id="insights" role="tabpanel">
+                <h4 class="mb-4"><i class="bi bi-lightbulb"></i> Cross-Organizational Insights</h4>
+
+                {% set ci = analysis.cross_org_insights %}
+
+                <!-- Summary Statistics -->
+                {% if ci and ci.summary_stats %}
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center border-primary">
+                            <div class="card-body">
+                                <h3 class="text-primary">{{ ci.summary_stats.total_centroids_analyzed }}</h3>
+                                <small class="text-muted">Centroids Analyzed</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-info">
+                            <div class="card-body">
+                                <h3 class="text-info">{{ ci.summary_stats.total_unified_clusters }}</h3>
+                                <small class="text-muted">Unified Clusters</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-warning">
+                            <div class="card-body">
+                                <h3 class="text-warning">{{ ci.summary_stats.cross_org_clusters }}</h3>
+                                <small class="text-muted">Cross-Org Patterns</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-secondary">
+                            <div class="card-body">
+                                <h3>{{ ci.summary_stats.org_specific_clusters }}</h3>
+                                <small class="text-muted">Org-Specific</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Cross-Organizational Patterns -->
+                {% if ci and ci.cross_org_clusters %}
+                {% for insight in ci.cross_org_clusters %}
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-warning">
+                        <h5 class="mb-0">
+                            <i class="bi bi-link-45deg"></i> Cross-Org Pattern {{ loop.index }}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6>Organizations Involved</h6>
+                                <p>
+                                    {% for org in insight.organizations %}
+                                    <span class="badge bg-primary me-1">{{ org }}</span>
+                                    {% endfor %}
+                                </p>
+
+                                <h6>Nodes Contributing</h6>
+                                <p>
+                                    {% for n in insight.nodes %}
+                                    <span class="badge bg-secondary me-1">{{ n }}</span>
+                                    {% endfor %}
+                                </p>
+
+                                <h6>Algorithms Contributing</h6>
+                                <p>
+                                    {% for a in insight.algorithms %}
+                                    <span class="badge bg-info me-1">{{ a }}</span>
+                                    {% endfor %}
+                                </p>
+
+                                <h6>Interpretation</h6>
+                                <p>{{ insight.interpretation }}</p>
+                            </div>
+
+                            <div class="col-md-4">
+                                <h6>Metrics</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Unique Data Points:</strong></td>
+                                        <td>{{ insight.unique_data_points|number }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Local Clusters Merged:</strong></td>
+                                        <td>{{ insight.n_local_clusters }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Cohesion:</strong></td>
+                                        <td>
+                                            <strong class="
+                                                {% if insight.cohesion > 0.7 %}text-success
+                                                {% elif insight.cohesion > 0.4 %}text-warning
+                                                {% else %}text-danger{% endif %}">
+                                                {{ "%.3f"|format(insight.cohesion) }}
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    No cross-organizational patterns detected in this analysis.
+                </div>
+                {% endif %}
+
+                <!-- Key Findings -->
+                <div class="card mt-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-key"></i> Key Findings</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li>
+                                <strong>Best performing algorithm:</strong>
+                                {{ analysis.best_algorithm }} with silhouette score of
+                                {{ "%.3f"|format(analysis.best_algorithm_score) }}
+                            </li>
+                            <li>
+                                <strong>Total data points analyzed:</strong>
+                                {{ analysis.total_data_points|number }} across
+                                {{ analysis.total_nodes }} distributed nodes
+                            </li>
+                            <li>
+                                <strong>Algorithms evaluated:</strong>
+                                {{ analysis.ensemble_analysis.algorithm_scores|length }}
+                            </li>
+                            <li>
+                                <strong>Cross-organizational patterns:</strong>
+                                {% if ci and ci.cross_org_clusters %}
+                                {{ ci.cross_org_clusters|length }} patterns detected
+                                {% else %}
+                                None detected
+                                {% endif %}
+                            </li>
+                            <li>
+                                <strong>Analysis duration:</strong>
+                                {{ analysis.execution_time_total_ms|duration }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Non-completed status -->
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <h5 class="alert-heading">
+                <i class="bi bi-exclamation-triangle"></i> Analysis Status: {{ analysis.status }}
+            </h5>
+            <p class="mb-0">
+                This analysis is not yet completed.
+                {% if analysis.status == 'processing' %}
+                It is currently being processed.
+                {% elif analysis.status == 'failed' %}
+                The analysis failed. Error: {{ analysis.error_message }}
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

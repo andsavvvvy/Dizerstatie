@@ -1,0 +1,31 @@
+{
+  "node_id": "iot_bucharest_01",
+  "node_type": "iot",
+  "port": 6003,
+
+  "data_path": "./nodes/node_iot/data/sensors_sample.csv",
+
+  "algorithms": ["SPECTRAL", "AFFINITY_PROPAGATION", "MINIBATCH_KMEANS"],
+
+  "algorithm_params": {
+    "spectral_n_clusters": 3,
+    "spectral_n_neighbors": 10,
+    "affinity_damping": 0.7,
+    "affinity_preference": null,
+    "affinity_max_iter": 300,
+    "minibatch_n_clusters": 3,
+    "minibatch_batch_size": 100
+  },
+
+  "preprocessing": {
+    "method": "robust_scaler",
+    "handle_missing": "forward_fill"
+  },
+
+  "global_orchestrator_url": "http://localhost:7000",
+
+  "metadata": {
+    "location": "Bucharest IoT Network",
+    "description": "Environmental and device sensor data analysis"
+  }
+}

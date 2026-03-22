@@ -1,0 +1,5 @@
+touch nodes/node_medical/data/.gitkeep
+touch nodes/node_retail/data/.gitkeep
+touch nodes/node_iot/data/.gitkeep
+touch logs/.gitkeep
+touch reports/.gitkeep

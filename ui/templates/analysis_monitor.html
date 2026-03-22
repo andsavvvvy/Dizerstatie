@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Monitor - Distributed Clustering{% endblock %}
+
+{% block content %}
+<div id="analysis-monitor-page" data-session-id="{{ session_id }}">
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <h1 class="display-5">
+                <i class="bi bi-activity"></i> Analysis Monitor
+            </h1>
+            <p class="lead">Session: <code>{{ session_id }}</code></p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="progress-steps">
+                        <div class="step" id="step-init">
+                            <div class="step-icon"><i class="bi bi-1-circle"></i></div>
+                            <div class="step-text">Initialize</div>
+                        </div>
+                        <div class="step" id="step-nodes">
+                            <div class="step-icon"><i class="bi bi-2-circle"></i></div>
+                            <div class="step-text">Node Clustering</div>
+                        </div>
+                        <div class="step" id="step-aggregate">
+                            <div class="step-icon"><i class="bi bi-3-circle"></i></div>
+                            <div class="step-text">Aggregation</div>
+                        </div>
+                        <div class="step" id="step-complete">
+                            <div class="step-icon"><i class="bi bi-4-circle"></i></div>
+                            <div class="step-text">Complete</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-list-check"></i> Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div id="progress-log" class="log-container">
+                        <div class="log-entry">
+                            <span class="log-time" id="init-time"></span>
+                            <span class="log-message">Analysis session initialized...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Current Stage</h6>
+                        <h5 id="current-stage" class="text-primary">Initializing...</h5>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Nodes</h6>
+                        <div id="node-status">
+                            <span class="badge bg-secondary">0/3 received</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Elapsed Time</h6>
+                        <h5 id="elapsed-time">0s</h5>
+                    </div>
+                    <div>
+                        <h6>Status</h6>
+                        <span id="analysis-status" class="badge bg-warning">In Progress</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

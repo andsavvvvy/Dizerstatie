@@ -1,0 +1,28 @@
+{
+  "node_id": "medical_bucharest_01",
+  "node_type": "healthcare",
+  "port": 6001,
+
+  "data_path": "./nodes/node_medical/data/patients_sample.csv",
+
+  "algorithms": ["KMEANS", "DBSCAN", "AGGLO"],
+
+  "algorithm_params": {
+    "kmeans_n_clusters": 3,
+    "dbscan_eps": 0.8,
+    "dbscan_min_samples": 5,
+    "agglo_n_clusters": 3
+  },
+
+  "preprocessing": {
+    "method": "standard_scaler",
+    "handle_missing": "median"
+  },
+
+  "global_orchestrator_url": "http://localhost:7000",
+
+  "metadata": {
+    "location": "Bucharest Medical Center",
+    "description": "Patient health metrics clustering and segmentation"
+  }
+}

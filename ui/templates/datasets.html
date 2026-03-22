@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Dataset Manager{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-5"><i class="bi bi-database-gear"></i> Dataset Manager</h1>
+        <p class="lead">Upload datasets and assign them to nodes</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-cloud-upload"></i> Upload New Dataset</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('dataset_upload') }}" method="post" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><strong>Dataset Name</strong></label>
+                            <input type="text" class="form-control" name="name" placeholder="e.g., Patient Records Q1">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><strong>File</strong></label>
+                            <input type="file" class="form-control" name="file" accept=".csv,.xlsx,.xls,.json" required>
+                            <div class="form-text">CSV, Excel, or JSON. Max 50MB.</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Description</strong></label>
+                        <input type="text" class="form-control" name="description" placeholder="Optional">
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Upload</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> How It Works</h6>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li>Upload your dataset</li>
+                    <li>Assign it to one or more nodes</li>
+                    <li>Set one as <strong>active</strong> per node</li>
+                    <li>Run analysis — nodes use their active dataset</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-collection"></i> All Datasets ({{ datasets|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if datasets %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>File</th>
+                                <th>Type</th>
+                                <th>Rows</th>
+                                <th>Numeric Cols</th>
+                                <th>Size</th>
+                                <th>Uploaded</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ds in datasets %}
+                            <tr>
+                                <td>{{ ds.id }}</td>
+                                <td><strong>{{ ds.name }}</strong>{% if ds.is_default %} <span
+                                        class="badge bg-dark">Default</span>{% endif %}{% if ds.description %}<br><small
+                                        class="text-muted">{{ ds.description }}</small>{% endif %}</td>
+                                <td><code>{{ ds.original_filename }}</code></td>
+                                <td><span class="badge bg-secondary">{{ ds.file_type|upper }}</span></td>
+                                <td>{{ ds.row_count|number }}</td>
+                                <td>{% if ds.columns_info and ds.columns_info.numeric_columns %}{{
+                                    ds.columns_info.numeric_columns|length }}{% else %}-{% endif %}</td>
+                                <td>{{ ds.file_size_bytes|filesize }}</td>
+                                <td><small>{{ ds.uploaded_at|datetime }}</small></td>
+                                <td>
+                                    <a href="{{ url_for('dataset_download', did=ds.id) }}"
+                                        class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i></a>
+                                    {% if not ds.is_default %}
+                                    <form action="{{ url_for('dataset_delete', did=ds.id) }}" method="post"
+                                        class="d-inline" onsubmit="return confirm('Delete?')">
+                                        <button class="btn btn-sm btn-outline-danger"><i
+                                                class="bi bi-trash"></i></button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4"><i class="bi bi-inbox fs-1"></i>
+                    <p class="mt-2">No datasets yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <h3 class="mb-3"><i class="bi bi-link-45deg"></i> Node Assignments</h3>
+    </div>
+    {% for node in nodes %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-dark text-white">
+                <h6 class="mb-0"><i class="bi bi-server"></i> {{ node.name }} <small>({{ node.node_id }})</small></h6>
+            </div>
+            <div class="card-body">
+                {% set na = assignments_by_node.get(node.node_id, []) %}
+                {% if na %}
+                {% for a in na %}
+                <div
+                    class="d-flex align-items-center justify-content-between mb-2 p-2 rounded {% if a.is_active %}bg-success bg-opacity-10 border border-success{% else %}bg-light{% endif %}">
+                    <div>
+                        {% if a.is_active %}<span class="badge bg-success me-1">ACTIVE</span>{% endif %}
+                        {% if a.is_default %}<span class="badge bg-dark me-1">Default</span>{% endif %}
+                        <strong>{{ a.dataset_name }}</strong><br><small class="text-muted">{{ a.row_count|number }}
+                            rows</small>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        {% if not a.is_active %}
+                        <form action="{{ url_for('dataset_set_active') }}" method="post" class="d-inline">
+                            <input type="hidden" name="node_id" value="{{ node.node_id }}"><input type="hidden"
+                                name="dataset_id" value="{{ a.dataset_id }}">
+                            <button class="btn btn-outline-success"><i class="bi bi-check-circle"></i></button>
+                        </form>
+                        {% endif %}
+                        <form action="{{ url_for('dataset_unassign') }}" method="post" class="d-inline">
+                            <input type="hidden" name="node_id" value="{{ node.node_id }}"><input type="hidden"
+                                name="dataset_id" value="{{ a.dataset_id }}">
+                            <button class="btn btn-outline-danger"><i class="bi bi-x-circle"></i></button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-muted mb-3"><i class="bi bi-database-x"></i> No datasets assigned.</div>
+                {% endif %}
+                {% if datasets %}
+                <hr>
+                <form action="{{ url_for('dataset_assign') }}" method="post">
+                    <input type="hidden" name="node_id" value="{{ node.node_id }}">
+                    <div class="input-group input-group-sm">
+                        <select name="dataset_id" class="form-select form-select-sm" required>
+                            <option value="">Select...</option>
+                            {% for ds in datasets %}<option value="{{ ds.id }}">{{ ds.name }} ({{ ds.row_count }})
+                            </option>{% endfor %}
+                        </select>
+                        <div class="input-group-text"><input type="checkbox" name="set_active" value="1" checked
+                                class="form-check-input mt-0"><small class="ms-1">Active</small></div>
+                        <button class="btn btn-primary btn-sm"><i class="bi bi-link"></i> Assign</button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

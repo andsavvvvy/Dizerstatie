@@ -1,0 +1,66 @@
+# ==============================
+# Python
+# ==============================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# ==============================
+# IDE / Editor
+# ==============================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==============================
+# Database files
+# ==============================
+
+*.db
+*.sqlite
+*.sqlite3
+
+# ==============================
+# Logs
+# ==============================
+
+logs/
+*.log
+
+# ==============================
+# Operating System files
+# ==============================
+
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Environment variables
+# ==============================
+
+.env
+
+# ==============================
+# Reports / Generated artifacts
+# ==============================
+
+reports/*.json
+reports/*.pdf
+
+# ==============================
+# Large or local data files
+# ==============================
+
+nodes/*/data/*.csv
+!nodes/*/data/.gitkeep

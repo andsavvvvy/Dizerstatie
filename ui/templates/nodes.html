@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Nodes - Distributed Clustering{% endblock %}
+
+{% block content %}
+<div id="nodes-page">
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <h1 class="display-5">
+                <i class="bi bi-hdd-network"></i> Distributed Nodes
+            </h1>
+            <p class="lead">Monitor and manage clustering nodes</p>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for node in nodes %}
+        <div class="col-md-4 mb-4">
+            <div
+                class="card h-100 border-{% if node.health == 'healthy' %}success{% elif node.health == 'unhealthy' %}warning{% else %}danger{% endif %}">
+                <div
+                    class="card-header bg-{% if node.health == 'healthy' %}success{% elif node.health == 'unhealthy' %}warning{% else %}danger{% endif %} text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-server"></i> {{ node.name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-muted">Type</h6>
+                        <span class="badge bg-secondary">{{ node.type }}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted">Health Status</h6>
+                        {% if node.health == 'healthy' %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Healthy</span>
+                        {% elif node.health == 'unhealthy' %}
+                        <span class="badge bg-warning"><i class="bi bi-exclamation-triangle"></i> Unhealthy</span>
+                        {% else %}
+                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Unreachable</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted">Endpoint</h6>
+                        <code>{{ node.url }}</code>
+                    </div>
+
+                    {% if node.status %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">Data Status</h6>
+                        {% if node.status.data_loaded %}
+                        <span class="badge bg-success"><i class="bi bi-database-check"></i> Data Loaded</span>
+                        {% else %}
+                        <span class="badge bg-secondary"><i class="bi bi-database"></i> No Data</span>
+                        {% endif %}
+                    </div>
+
+                    {% if node.status.data_shape %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">Dataset</h6>
+                        <p class="mb-0">
+                            <strong>{{ node.status.data_shape[0]|number }}</strong> samples x
+                            <strong>{{ node.status.data_shape[1] }}</strong> features
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <h6 class="text-muted">Algorithms</h6>
+                        {% for algo in node.status.algorithms_available %}
+                        <span class="badge bg-info">{{ algo }}</span>
+                        {% endfor %}
+                    </div>
+
+                    {% if node.status.last_analysis %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">Last Analysis</h6>
+                        <small>{{ node.status.last_analysis|datetime }}</small>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    <div class="d-grid gap-2 mt-3">
+                        {% if node.health == 'healthy' %}
+                        <button class="btn btn-outline-primary btn-sm" onclick="testNode('{{ node.url }}')">
+                            <i class="bi bi-arrow-clockwise"></i> Test Connection
+                        </button>
+                        {% else %}
+                        <button class="btn btn-outline-danger btn-sm" disabled>
+                            <i class="bi bi-exclamation-triangle"></i> Node Unavailable
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- System Architecture -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-diagram-3"></i> System Architecture</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="architecture-diagram">
+                        <div class="row justify-content-center mb-4">
+                            <div class="col-md-6">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body">
+                                        <h5><i class="bi bi-diagram-3-fill"></i> Global Orchestrator</h5>
+                                        <small>Meta-clustering & Ensemble</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mb-3">
+                            <i class="bi bi-arrow-down-up fs-1 text-muted"></i>
+                        </div>
+
+                        <div class="row">
+                            {% for node in nodes %}
+                            <div class="col-md-4">
+                                <div
+                                    class="card border-{% if node.health == 'healthy' %}success{% else %}danger{% endif %}">
+                                    <div class="card-body">
+                                        <h6>{{ node.name }}</h6>
+                                        <small class="text-muted">{{ node.type }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
