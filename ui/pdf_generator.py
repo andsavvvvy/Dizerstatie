@@ -1,8 +1,3 @@
-"""
-PDF Report Generator for Distributed Clustering Analysis
-Generates a professional PDF with tables and charts.
-Requires: pip install reportlab
-"""
 import io
 from datetime import datetime
 from reportlab.lib import colors
@@ -12,11 +7,10 @@ from reportlab.lib.units import mm, cm
 from reportlab.lib.enums import TA_LEFT
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, HRFlowable, Image
+    PageBreak, HRFlowable
 )
-from reportlab.graphics.shapes import Drawing, Rect, String, Line
+from reportlab.graphics.shapes import Drawing, String
 from reportlab.graphics.charts.barcharts import VerticalBarChart
-from reportlab.graphics import renderPDF
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,19 +36,15 @@ def _make_table_style(header_color='#0d6efd'):
 
 
 def _para(text, style):
-    """Helper to wrap text in Paragraph for table cells (auto line-break)."""
     return Paragraph(text, style)
 
 
 def _build_bar_chart(names, values, title_text, width=450, height=200,
-                     bar_color=colors.HexColor('#0d6efd'),
-                     best_color=colors.HexColor('#198754'), best_name=None):
-    """Create a simple vertical bar chart as a Drawing."""
+                     bar_color=colors.HexColor('#0d6efd'), best_name=None):
     d = Drawing(width, height + 30)
     d.add(String(width / 2, height + 15, title_text,
                  fontSize=10, fillColor=colors.HexColor('#333'),
                  textAnchor='middle', fontName='Helvetica-Bold'))
-
     chart = VerticalBarChart()
     chart.x = 60
     chart.y = 30
@@ -69,23 +59,16 @@ def _build_bar_chart(names, values, title_text, width=450, height=200,
     chart.valueAxis.valueMin = min(0, min(values) - 0.05) if values else 0
     chart.valueAxis.valueMax = max(values) * 1.15 if values else 1
     chart.bars[0].fillColor = bar_color
-    if best_name and best_name in names:
-        for i, n in enumerate(names):
-            if n == best_name:
-                chart.bars[0].fillColor = bar_color  # default
-    
     d.add(chart)
     return d
 
 
 def _build_grouped_bar_chart(categories, series_data, series_names, title_text,
                               width=450, height=220):
-    """Grouped bar chart with multiple series."""
     d = Drawing(width, height + 30)
     d.add(String(width / 2, height + 15, title_text,
                  fontSize=10, fillColor=colors.HexColor('#333'),
                  textAnchor='middle', fontName='Helvetica-Bold'))
-
     chart = VerticalBarChart()
     chart.x = 60
     chart.y = 30
@@ -99,7 +82,6 @@ def _build_grouped_bar_chart(categories, series_data, series_names, title_text,
     chart.valueAxis.labels.fontSize = 7
     chart.bars.strokeWidth = 0
     chart.groupSpacing = 8
-
     palette = [
         colors.HexColor('#0d6efd'), colors.HexColor('#198754'),
         colors.HexColor('#ffc107'), colors.HexColor('#dc3545'),
@@ -110,15 +92,14 @@ def _build_grouped_bar_chart(categories, series_data, series_names, title_text,
         chart.bars[i].name = name
     for i, name in enumerate(series_names):
         x_pos = 70 + i * 120
+        from reportlab.graphics.shapes import Rect
         d.add(Rect(x_pos, 5, 10, 8, fillColor=palette[i % len(palette)], strokeColor=None))
         d.add(String(x_pos + 14, 5, name, fontSize=7, fillColor=colors.black))
-
     d.add(chart)
     return d
 
 
 def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None, node_performance=None):
-    """Generate PDF report. Returns bytes."""
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer, pagesize=A4,
@@ -141,6 +122,7 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
     styles.add(ParagraphStyle('CellText', parent=styles['Normal'], fontSize=7.5, leading=9))
 
     elements = []
+
     elements.append(Spacer(1, 1 * cm))
     elements.append(Paragraph("Distributed Clustering — Analysis Report", styles['MainTitle']))
     elements.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#0d6efd')))
@@ -171,6 +153,7 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
     t.setStyle(_make_table_style('#0d6efd'))
     elements.append(t)
     elements.append(PageBreak())
+
     elements.append(Paragraph("Algorithm Performance", styles['Section']))
 
     ensemble = analysis.get('ensemble_analysis', {})
@@ -179,14 +162,12 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
 
     if algo_scores:
         sorted_algos = sorted(algo_scores.items(), key=lambda x: x[1].get('avg_silhouette', 0), reverse=True)
+
         chart_names = [a[0] for a in sorted_algos]
         chart_vals = [a[1].get('avg_silhouette', 0) for a in sorted_algos]
-        elements.append(_build_bar_chart(
-            chart_names, chart_vals,
-            'Average Silhouette Score by Algorithm',
-            best_name=best_algo_name,
-        ))
+        elements.append(_build_bar_chart(chart_names, chart_vals, 'Average Silhouette Score by Algorithm', best_name=best_algo_name))
         elements.append(Spacer(1, 4 * mm))
+
         algo_data = [['Algorithm', 'Avg Silhouette', 'Std Dev', 'Consistency', 'Avg Clusters', 'Nodes']]
         for algo, scores in sorted_algos:
             is_best = algo == best_algo_name
@@ -210,9 +191,9 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
             elements.append(Paragraph("<b>Recommendation:</b> " + rec, styles['Normal']))
 
     elements.append(PageBreak())
+
     if node_participation:
         elements.append(Paragraph("Node Participation", styles['Section']))
-
         np_data = [['Node', 'Type', 'Data Points', 'Contribution', 'Best Algorithm', 'Score']]
         for np_item in node_participation:
             np_data.append([
@@ -227,12 +208,12 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
         t.setStyle(_make_table_style('#0dcaf0'))
         elements.append(t)
         elements.append(Spacer(1, 6 * mm))
+
     if local_by_node:
         elements.append(Paragraph("Per-Node Algorithm Breakdown", styles['Section']))
 
         for node_id, algos in local_by_node.items():
             elements.append(Paragraph(f"Node: {node_id}", styles['SubSec']))
-
             lr_data = [['Algorithm', 'Clusters', 'Silhouette', 'Davies-Bouldin', 'Time (ms)']]
             for lr in algos:
                 sil = lr.get('silhouette_score', 0) or 0
@@ -248,6 +229,7 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
             t.setStyle(_make_table_style('#6c757d'))
             elements.append(t)
             elements.append(Spacer(1, 3 * mm))
+
         all_algos_set = set()
         for algos in local_by_node.values():
             for lr in algos:
@@ -261,39 +243,25 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
                 row = []
                 algo_map = {lr['algorithm']: lr for lr in local_by_node[nid]}
                 for algo in all_algos_sorted:
-                    if algo in algo_map:
-                        row.append(algo_map[algo].get('silhouette_score', 0) or 0)
-                    else:
-                        row.append(0)
+                    row.append(algo_map[algo].get('silhouette_score', 0) or 0 if algo in algo_map else 0)
                 series_data.append(row)
-
             elements.append(Spacer(1, 4 * mm))
-            elements.append(_build_grouped_bar_chart(
-                all_algos_sorted, series_data, node_ids,
-                'Silhouette Score per Algorithm per Node',
-            ))
-        if all_algos_sorted and node_ids:
+            elements.append(_build_grouped_bar_chart(all_algos_sorted, series_data, node_ids, 'Silhouette Score per Algorithm per Node'))
+
             time_series = []
             for nid in node_ids:
                 row = []
                 algo_map = {lr['algorithm']: lr for lr in local_by_node[nid]}
                 for algo in all_algos_sorted:
-                    if algo in algo_map:
-                        row.append(algo_map[algo].get('execution_time_ms', 0))
-                    else:
-                        row.append(0)
+                    row.append(algo_map[algo].get('execution_time_ms', 0) if algo in algo_map else 0)
                 time_series.append(row)
-
             elements.append(Spacer(1, 6 * mm))
-            elements.append(_build_grouped_bar_chart(
-                all_algos_sorted, time_series, node_ids,
-                'Execution Time (ms) per Algorithm per Node',
-            ))
+            elements.append(_build_grouped_bar_chart(all_algos_sorted, time_series, node_ids, 'Execution Time (ms) per Algorithm per Node'))
 
     elements.append(PageBreak())
+
     if node_performance:
         elements.append(Paragraph("System Performance", styles['Section']))
-
         perf_data = [['Node', 'CPU %', 'Memory (MB)', 'Avg Silhouette', 'Algorithms', 'Avg Time (ms)']]
         for nid, perf in node_performance.items():
             cpu = perf.get('cpu_usage_percent')
@@ -311,6 +279,7 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
         t.setStyle(TableStyle([('TEXTCOLOR', (0, 0), (-1, 0), colors.black)]))
         elements.append(t)
         elements.append(Spacer(1, 6 * mm))
+
     ci = analysis.get('cross_org_insights', {})
     cross_org = ci.get('cross_org_clusters', [])
 
@@ -331,25 +300,106 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
         t.setStyle(_make_table_style('#6f42c1'))
         t.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
         elements.append(t)
-        elements.append(Spacer(1, 4 * mm))
+        elements.append(Spacer(1, 3 * mm))
+
+        metrics_used = stats.get('metrics_used', '')
+        if metrics_used:
+            elements.append(Paragraph(
+                f"<b>Similarity metrics:</b> {metrics_used}. "
+                f"Centroids normalized: {'Yes' if stats.get('centroids_normalized') else 'No'}.",
+                styles['Small'],
+            ))
+            elements.append(Spacer(1, 3 * mm))
+
+    stability = ci.get('stability', {})
+    significance = ci.get('significance', {})
+
+    if stability or significance:
+        elements.append(Paragraph("Pattern Confidence", styles['SubSec']))
+
+        conf_data = [['Metric', 'Value', 'Interpretation']]
+
+        if stability:
+            score = stability.get('stability_score', 0)
+            conf_data.append([
+                'Stability Score',
+                f"{score * 100:.0f}%",
+                _para(f"{stability.get('interpretation', '')} — detected at "
+                      f"{stability.get('appears_at_n_thresholds', 0)} of "
+                      f"{stability.get('total_thresholds_tested', 0)} threshold levels",
+                      styles['CellText']),
+            ])
+
+        if significance:
+            p_val = significance.get('p_value', 1.0)
+            conf_data.append([
+                'Statistical Significance',
+                f"p = {p_val}",
+                _para(f"{significance.get('interpretation', '')}. "
+                      f"{significance.get('n_permutations', 0)} permutation tests. "
+                      f"Random avg: {significance.get('mean_random_cross_org', 0)} patterns.",
+                      styles['CellText']),
+            ])
+
+        if len(conf_data) > 1:
+            t = Table(conf_data, colWidths=[3.5*cm, 2.5*cm, 9.5*cm])
+            t.setStyle(_make_table_style('#343a40'))
+            elements.append(t)
+            elements.append(Spacer(1, 4 * mm))
 
     if cross_org:
         for i, insight in enumerate(cross_org, 1):
             elements.append(Paragraph(f"<b>Pattern {i}</b>", styles['SubSec']))
+
             elements.append(Paragraph(
-                f"<b>Organizations:</b> {', '.join(insight.get('organizations', []))}", styles['Normal']))
+                f"<b>Organizations:</b> {', '.join(insight.get('organizations', []))}",
+                styles['Normal']))
             elements.append(Paragraph(
-                f"<b>Nodes:</b> {', '.join(insight.get('nodes', []))}", styles['Normal']))
+                f"<b>Nodes:</b> {', '.join(insight.get('nodes', []))}",
+                styles['Normal']))
             elements.append(Paragraph(
-                f"<b>Algorithms:</b> {', '.join(insight.get('algorithms', []))}", styles['Normal']))
-            elements.append(Paragraph(
-                f"<b>Unique Data Points:</b> {insight.get('unique_data_points', 0):,} &nbsp;|&nbsp; "
-                f"<b>Cohesion:</b> {insight.get('cohesion', 0):.3f}", styles['Normal']))
+                f"<b>Algorithms:</b> {', '.join(insight.get('algorithms', []))}",
+                styles['Normal']))
             elements.append(Spacer(1, 2 * mm))
+
+            metrics_data = [['Metric', 'Value']]
+            metrics_data.append(['Unique Data Points', f"{insight.get('unique_data_points', 0):,}"])
+            metrics_data.append(['Local Clusters Merged', str(insight.get('n_local_clusters', 0))])
+            metrics_data.append(['Cohesion', f"{insight.get('cohesion', 0):.3f}"])
+            metrics_data.append(['Support', f"{insight.get('support', 0) * 100:.1f}%"])
+
+            sim_metrics = insight.get('similarity_metrics', {})
+            for metric_name, metric_val in sim_metrics.items():
+                clean_name = metric_name.replace('avg_', '').replace('_distance', '').title()
+                metrics_data.append([f'{clean_name} Distance', f"{metric_val:.4f}"])
+
+            t = Table(metrics_data, colWidths=[5*cm, 4*cm])
+            t.setStyle(_make_table_style('#fd7e14'))
+            t.setStyle(TableStyle([('TEXTCOLOR', (0, 0), (-1, 0), colors.white)]))
+            elements.append(t)
+            elements.append(Spacer(1, 3 * mm))
+
+            feat_analysis = insight.get('feature_analysis', {})
+            top_feats = feat_analysis.get('top_features', [])
+            if top_feats:
+                elements.append(Paragraph("<b>Most Similar Features:</b>", styles['Normal']))
+                feat_data = [['Dimension', 'Similarity']]
+                for feat in top_feats:
+                    feat_data.append([
+                        f"Dimension {feat['feature_index']}",
+                        f"{feat['similarity'] * 100:.0f}%",
+                    ])
+                t = Table(feat_data, colWidths=[5*cm, 4*cm])
+                t.setStyle(_make_table_style('#20c997'))
+                elements.append(t)
+                elements.append(Spacer(1, 3 * mm))
+
+            elements.append(Paragraph("<b>Interpretation:</b>", styles['Normal']))
             elements.append(Paragraph(insight.get('interpretation', ''), styles['Normal']))
-            elements.append(Spacer(1, 5 * mm))
+            elements.append(Spacer(1, 6 * mm))
     else:
         elements.append(Paragraph("No cross-organizational patterns detected.", styles['Normal']))
+
     elements.append(Spacer(1, 4 * mm))
     elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#dee2e6')))
     elements.append(Spacer(1, 4 * mm))
@@ -359,15 +409,24 @@ def generate_analysis_pdf(analysis, node_participation=None, local_by_node=None,
     findings = [
         f"Best performing algorithm: <b>{analysis.get('best_algorithm', 'N/A')}</b> "
         f"(silhouette: {analysis.get('best_algorithm_score', 0):.3f})",
+
         f"Total data points analyzed: <b>{analysis.get('total_data_points', 0):,}</b> "
         f"across {analysis.get('total_nodes', 0)} distributed nodes",
+
         f"Algorithms evaluated: <b>{n_algos}</b>",
-        f"Cross-organizational patterns: <b>{len(cross_org)}</b>",
+
+        f"Cross-organizational patterns: <b>{len(cross_org)}</b>"
+        + (f" (stability: {stability.get('stability_score', 0) * 100:.0f}%,"
+           f" p-value: {significance.get('p_value', 'N/A')})"
+           if stability or significance else ""),
+
         f"Analysis duration: <b>{exec_str}</b>",
     ]
+
     for f in findings:
         elements.append(Paragraph(f"• {f}", styles['Normal']))
         elements.append(Spacer(1, 1.5 * mm))
+
     doc.build(elements)
     buffer.seek(0)
     return buffer.getvalue()

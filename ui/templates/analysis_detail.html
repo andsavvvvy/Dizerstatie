@@ -634,6 +634,7 @@
                 <h4 class="mb-4"><i class="bi bi-lightbulb"></i> Cross-Organizational Insights</h4>
 
                 {% set ci = analysis.cross_org_insights %}
+
                 {% if ci and ci.summary_stats %}
                 <div class="row mb-4">
                     <div class="col-md-3">
@@ -669,10 +670,86 @@
                         </div>
                     </div>
                 </div>
+
+                {% if ci.summary_stats.metrics_used %}
+                <div class="alert alert-secondary mb-4">
+                    <i class="bi bi-gear"></i>
+                    <strong>Similarity metrics:</strong> {{ ci.summary_stats.metrics_used }}.
+                    Centroids normalized: {{ 'Yes' if ci.summary_stats.centroids_normalized else 'No' }}.
+                </div>
                 {% endif %}
+                {% endif %}
+
+                {% if ci and ci.stability %}
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-shield-check"></i> Pattern Stability</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        <h2
+                                            class="mb-0 {% if ci.stability.stability_score >= 0.7 %}text-success{% elif ci.stability.stability_score >= 0.5 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ "%.0f"|format(ci.stability.stability_score * 100) }}%
+                                        </h2>
+                                    </div>
+                                    <div>
+                                        <strong>{{ ci.stability.interpretation }}</strong><br>
+                                        <small class="text-muted">
+                                            Cross-org patterns detected at {{ ci.stability.appears_at_n_thresholds }}
+                                            of {{ ci.stability.total_thresholds_tested }} threshold levels
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar {% if ci.stability.stability_score >= 0.7 %}bg-success{% elif ci.stability.stability_score >= 0.5 %}bg-warning{% else %}bg-danger{% endif %}"
+                                        style="width: {{ (ci.stability.stability_score * 100)|int }}%">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if ci.significance %}
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Statistical Significance</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        <h2
+                                            class="mb-0 {% if ci.significance.p_value < 0.01 %}text-success{% elif ci.significance.p_value < 0.05 %}text-warning{% else %}text-danger{% endif %}">
+                                            p={{ ci.significance.p_value }}
+                                        </h2>
+                                    </div>
+                                    <div>
+                                        <strong>{{ ci.significance.interpretation }}</strong><br>
+                                        <small class="text-muted">
+                                            {{ ci.significance.n_permutations }} permutation tests.
+                                            Random avg: {{ ci.significance.mean_random_cross_org }} cross-org patterns
+                                        </small>
+                                    </div>
+                                </div>
+                                {% if ci.significance.significant %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Statistically
+                                    Significant</span>
+                                {% else %}
+                                <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Not Significant</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 {% if ci and ci.cross_org_clusters %}
                 {% for insight in ci.cross_org_clusters %}
-                <div class="card mb-3 border-warning">
+                <div class="card mb-4 border-warning">
                     <div class="card-header bg-warning">
                         <h5 class="mb-0">
                             <i class="bi bi-link-45deg"></i> Cross-Org Pattern {{ loop.index }}
@@ -707,28 +784,60 @@
                             </div>
 
                             <div class="col-md-4">
-                                <h6>Metrics</h6>
+                                <h6>Core Metrics</h6>
                                 <table class="table table-sm">
                                     <tr>
                                         <td><strong>Unique Data Points:</strong></td>
                                         <td>{{ insight.unique_data_points|number }}</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Local Clusters Merged:</strong></td>
+                                        <td><strong>Clusters Merged:</strong></td>
                                         <td>{{ insight.n_local_clusters }}</td>
                                     </tr>
                                     <tr>
                                         <td><strong>Cohesion:</strong></td>
                                         <td>
-                                            <strong class="
-                                                {% if insight.cohesion > 0.7 %}text-success
-                                                {% elif insight.cohesion > 0.4 %}text-warning
-                                                {% else %}text-danger{% endif %}">
+                                            <strong
+                                                class="{% if insight.cohesion > 0.7 %}text-success{% elif insight.cohesion > 0.4 %}text-warning{% else %}text-danger{% endif %}">
                                                 {{ "%.3f"|format(insight.cohesion) }}
                                             </strong>
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td><strong>Support:</strong></td>
+                                        <td>{{ "%.1f"|format(insight.support * 100) }}%</td>
+                                    </tr>
                                 </table>
+
+                                {% if insight.similarity_metrics %}
+                                <h6 class="mt-3">Similarity Distances</h6>
+                                <table class="table table-sm">
+                                    {% for metric_name, metric_val in insight.similarity_metrics.items() %}
+                                    <tr>
+                                        <td><strong>{{ metric_name|replace('avg_', '')|replace('_distance', '')|title
+                                                }}:</strong></td>
+                                        <td>{{ "%.4f"|format(metric_val) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+                                {% endif %}
+
+                                {% if insight.feature_analysis and insight.feature_analysis.top_features %}
+                                <h6 class="mt-3">Most Similar Features</h6>
+                                <table class="table table-sm">
+                                    {% for feat in insight.feature_analysis.top_features %}
+                                    <tr>
+                                        <td>Dimension {{ feat.feature_index }}:</td>
+                                        <td>
+                                            <strong
+                                                class="{% if feat.similarity > 0.8 %}text-success{% elif feat.similarity > 0.5 %}text-warning{% else %}text-danger{% endif %}">
+                                                {{ "%.0f"|format(feat.similarity * 100) }}%
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -740,6 +849,7 @@
                     No cross-organizational patterns detected in this analysis.
                 </div>
                 {% endif %}
+
                 <div class="card mt-4">
                     <div class="card-header bg-info text-white">
                         <h5 class="mb-0"><i class="bi bi-key"></i> Key Findings</h5>
@@ -763,9 +873,15 @@
                             <li>
                                 <strong>Cross-organizational patterns:</strong>
                                 {% if ci and ci.cross_org_clusters %}
-                                {{ ci.cross_org_clusters|length }} patterns detected
+                                {{ ci.cross_org_clusters|length }} detected
                                 {% else %}
                                 None detected
+                                {% endif %}
+                                {% if ci and ci.stability %}
+                                (stability: {{ "%.0f"|format(ci.stability.stability_score * 100) }}%)
+                                {% endif %}
+                                {% if ci and ci.significance %}
+                                (p-value: {{ ci.significance.p_value }})
                                 {% endif %}
                             </li>
                             <li>
