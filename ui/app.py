@@ -296,7 +296,7 @@ def analysis_start():
 def analysis_trigger_nodes(sid):
     def call(n):
         try:
-            r = requests.post(f"{n['url']}/send_to_global", json={'session_id': sid}, timeout=120)
+            r = requests.post(f"{n['url']}/send_to_global", json={'session_id': sid}, timeout=600)
             return {'node': n['name'], 'status': 'success' if r.status_code == 200 else 'error'}
         except Exception as e: return {'node': n['name'], 'status': 'error', 'message': str(e)}
     rs = []
